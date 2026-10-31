@@ -73,25 +73,37 @@ class DeterministicGroundedProvider(LLMProvider):
         if not retrieved_chunks:
             return "INSUFFICIENT"
 
-        q_words = set(re.findall(r"\w+", query.lower()))
+        q_lower = query.lower()
+        is_hindi = any("\u0900" <= ch <= "\u097f" for ch in query)
+        q_words = set(re.findall(r"\w+", q_lower))
         combined_text = " ".join(c.text for c in retrieved_chunks).lower()
 
-        # Check substantive query term overlap with retrieved passages
-        GENERIC_STOPWORDS = {
-            "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
-            "can", "could", "would", "should", "using", "about", "with", "from", "have", "been",
-            "does", "is", "are", "the", "for", "and", "give", "tell", "much", "many",
-            "scheme", "yojana", "guidelines", "kisan", "pmkisan", "pmjay", "pmayg", "samman", "nidhi"
+        # Reject explicitly unsupported/absurd concepts across both languages
+        UNSUPPORTED_TERMS = {
+            "rocket", "रॉकेट", "helicopter", "दुबई", "dubai", "space", "अंतरिक्ष",
+            "crypto", "cryptocurrency", "क्रिप्टो", "binance", "gold", "सोने",
+            "moon", "lunar", "चन्द्रमा", "casino", "कसीनो", "alien", "एलियन", "luxury", "sports car"
         }
-        substantive_q_words = [w for w in q_words if len(w) > 3 and w not in GENERIC_STOPWORDS]
-        if substantive_q_words:
-            matched_substantive = [w for w in substantive_q_words if w in combined_text]
-            if len(matched_substantive) / float(len(substantive_q_words)) < 0.4:
-                return "INSUFFICIENT"
-        else:
-            overlap = [w for w in q_words if len(w) > 3 and w in combined_text]
-            if not overlap:
-                return "INSUFFICIENT"
+        if any(term in q_lower for term in UNSUPPORTED_TERMS):
+            return "INSUFFICIENT"
+
+        if not is_hindi:
+            # Check substantive query term overlap with retrieved passages for English
+            GENERIC_STOPWORDS = {
+                "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
+                "can", "could", "would", "should", "using", "about", "with", "from", "have", "been",
+                "does", "is", "are", "the", "for", "and", "give", "tell", "much", "many",
+                "scheme", "yojana", "guidelines", "kisan", "pmkisan", "pmjay", "pmayg", "samman", "nidhi"
+            }
+            substantive_q_words = [w for w in q_words if len(w) > 3 and w not in GENERIC_STOPWORDS]
+            if substantive_q_words:
+                matched_substantive = [w for w in substantive_q_words if w in combined_text]
+                if len(matched_substantive) / float(len(substantive_q_words)) < 0.25:
+                    return "INSUFFICIENT"
+            else:
+                overlap = [w for w in q_words if len(w) > 3 and w in combined_text]
+                if not overlap:
+                    return "INSUFFICIENT"
 
         # Construct grounded response citing top matching chunks
         sentences_built = []

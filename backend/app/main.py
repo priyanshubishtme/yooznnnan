@@ -12,6 +12,7 @@ from backend.app.config import settings
 from backend.app.core.errors import register_error_handlers
 from backend.app.core.logging import logger
 from backend.app.core.middleware import RequestContextMiddleware
+from backend.app.core.rate_limit import RateLimitMiddleware
 from backend.app.db.seed import seed_database
 from backend.app.db.session import AsyncSessionLocal
 from backend.app.scheduler.manager import scheduler_manager
@@ -63,6 +64,9 @@ def create_app() -> FastAPI:
 
     # Custom request context tracking middleware
     app.add_middleware(RequestContextMiddleware)
+
+    # In-flight token bucket rate limiting (Phase 10 Security)
+    app.add_middleware(RateLimitMiddleware, default_limit=120, strict_limit=60)
 
     # Global error handlers
     register_error_handlers(app)
