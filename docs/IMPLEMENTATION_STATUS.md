@@ -14,11 +14,57 @@ Preserving full product scope with zero feature deletion.
 | **Phase 3** | **Discovery, Fetching & Admin Review Console** | Phases 4 & 5 | **COMPLETED** | [x] New/changed/unchanged classified correctly on fixtures, [x] No candidate public/searchable before approval |
 | **Phase 4** | **PDF Ingestion & Coordinate Extraction** | Phase 6 | **COMPLETED** | [x] Every chunk keeps page and boxes, [x] Spot-checks pass, [x] One single shared ingestion path |
 | **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | **COMPLETED** | [x] Every active rule has verified quote & page, [x] Source change disables rules until re-approved, [x] 13 initial scheme records |
-| **Phase 6** | **Hybrid Retrieval & Groq RAG Chat** | Phases 8 & 9 | *Pending* | [ ] Only current verified versions retrieved, [ ] Zero hallucinated citation IDs, [ ] Unsupported questions refused, [ ] Final answer validated |
+| **Phase 6** | **Hybrid Retrieval & Groq RAG Chat** | Phases 8 & 9 | **COMPLETED** | [x] Only current verified versions retrieved, [x] Zero hallucinated citation IDs, [x] Unsupported questions refused, [x] Final answer validated |
 | **Phase 7** | **Deterministic Eligibility & Ranking** | Phase 10 | *Pending* | [ ] 25 profiles match expected outcomes, [ ] Zero needs_review rules produce output, [ ] Three-valued logic & explainability |
 | **Phase 8** | **Citizen Application, PDF Evidence Viewer & 3D Experience** | Phase 11 | *Pending* | [ ] End-to-end journeys pass on mobile/desktop, [ ] Source chips open exact PDF highlight boxes, [ ] 3D landing page responsive |
 | **Phase 9** | **PWA, Offline, Voice, My Schemes & Notifications** | Phases 12 & 13 | *Pending* | [ ] Saved schemes open offline, [ ] Chat/eligibility network-only, [ ] Voice text fallback, [ ] Verified email unsubscribe works |
 | **Phase 10** | **Evaluation, Security, Deployment & Demo** | Phase 14 | *Pending* | [ ] Full test suites pass, [ ] Security & dependency review, [ ] Rate limits active, [ ] Production deployment scripts verified |
+
+---
+
+## Phase 6 Detail Checklist (Hybrid Retrieval & Groq RAG Chat) — Passed
+
+- [x] **Hybrid Retrieval Engine (`backend/app/retrieval/hybrid.py`)**:
+  - Dense semantic retrieval via multi-ngram vector space model with L2 unit normalization, generating fast cosine similarity across Devanagari and Latin scripts.
+  - Sparse BM25 retrieval with Devanagari Unicode word segmentation, Hindi/English punctuation normalization, and standard BM25 hyperparameters ($k_1 = 1.5, b = 0.75$).
+  - Reciprocal Rank Fusion (RRF, $k = 60$) combining dense and sparse rank lists: $\text{RRF}(d) = \sum_{m} \frac{1}{k + r_m(d)}$.
+  - **Strict Verification Gate (Blueprint Section 9.1)**: Hard SQL filters guarantee that only chunks from `DocumentVersion.status in ['verified', 'ingested']` and `Document.status in ['verified', 'active']` can ever be retrieved. Superseded, draft, or pending candidates are strictly isolated at query execution.
+  - Preserves constituent line bounding boxes `[x0, y0, x1, y1]` and page numbers on every retrieved chunk candidate.
+- [x] **Citation Validator & Deterministic Evidence Scorer (`backend/app/llm/citation_validator.py`)**:
+  - Pure deterministic function running post-generation.
+  - Parses citation markers `[C{i}]` or `[C1, C2]`.
+  - **Zero Hallucinated Citations Guarantee (Blueprint Section 9.5)**: Validates that every citation index $i \le \text{len(retrieved\_chunks)}$. Any hallucinated, invented, or out-of-range citations (e.g. `[C99]`) are automatically stripped and flagged.
+  - Resolves verified citations to exact document title, version ID, page number, verbatim quote, and line bounding boxes.
+  - Grades evidence quality deterministically: `STRONG` (official guidelines with valid citations), `PARTIAL` (supplementary circulars/articles), or `INSUFFICIENT` (unsupported query or zero verified passages).
+- [x] **LLM Provider & Polite Refusal Architecture (`backend/app/llm/provider.py`)**:
+  - `GroqProvider`: Uses AsyncOpenAI client with Groq base URL and `llama-3.3-70b-versatile` / `mixtral-8x7b-32768`.
+  - `DeterministicGroundedProvider`: Offline/testing provider enforcing strict substantive term overlap (> 40%) against retrieved official context.
+  - **Polite Refusal (Blueprint Section 9.6)**: Unsupported questions (e.g. "Can I buy a rocket ticket with PM-KISAN subsidy?") immediately return `INSUFFICIENT`, generating polite refusal messages in Hindi or English with zero fabricated citations.
+- [x] **Grounded Chat & Retrieval API (`backend/app/api/v1/chat.py`)**:
+  - `POST /api/v1/chat`: Standard bilingual JSON chat endpoint returning validated answer, evidence level, reasons, refusal flag, and structured citations.
+  - `POST /api/v1/chat/stream`: Server-Sent Events (SSE) streaming endpoint emitting real-time pipeline status events (`retrieving`, `generating`, `validating`) and final validated payload.
+  - `POST /api/v1/chat/retrieval/test`: Diagnostic endpoint exposing dense/sparse scores, RRF ranks, and bounding box telemetry.
+- [x] **Interactive Citizen Chat Frontend (`apps/web/src/pages/citizen/ChatPage.tsx`)**:
+  - Clean bilingual conversational interface with real-time progressive status indicators.
+  - Formatted text rendering clickable `[C1]`, `[C2]` inline pills with saffron highlight styling.
+  - Evidence Quality Badges (`STRONG EVIDENCE`, `PARTIAL EVIDENCE`, `INSUFFICIENT EVIDENCE`).
+  - Refusal Notice callout explicitly reassuring citizens that ungrounded answers are refused to avoid hallucination.
+  - Interactive Citation Evidence Drawer displaying:
+    - Official Document title and verified immutable badge.
+    - Exact Page number.
+    - Verbatim quote snippet.
+    - Visual PDF Coordinate Highlight preview simulating page sheet with saffron highlight overlay.
+    - Raw bounding coordinates `[x0, y0, x1, y1]` table.
+    - Chunk ID and document version cryptographic hash.
+  - Scheme filter selector (All Schemes, PM-KISAN, PMAY-G, PM-JAY, UK Old Age Pension, etc.).
+  - Bilingual quick-prompt chips in Hindi and English.
+- [x] **Phase 6 Gate Verification**:
+  - Automated Pytest suite: **32/32 tests passing** across all backend test suites (`test_hybrid_retrieval_and_rag.py`, `test_rules_and_invalidation.py`, `test_pdf_ingestion.py`, `test_discovery_and_review.py`, `test_compliance_and_scheduler.py`, `test_health.py`).
+  - Browser subagent completed end-to-end testing:
+    - Verified grounded inquiry for PM-KISAN, receiving `[C1]`, `[C2]`, and `STRONG EVIDENCE` badge.
+    - Inspected right-side Citation Evidence drawer showing Page 1, verbatim quote, and PDF bounding boxes.
+    - Verified polite refusal for unsupported "rocket ticket" query, confirming `INSUFFICIENT EVIDENCE`, Grounding Assurance notice, and zero citations.
+    - Verified smooth Hindi language toggle and translated UI. All 4 gate criteria satisfied.
 
 ---
 

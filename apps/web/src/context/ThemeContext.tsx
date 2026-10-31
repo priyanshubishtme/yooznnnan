@@ -1,5 +1,5 @@
-/**
- * Light / Dark Theme Context Provider
+﻿/**
+ * Light / Dark Theme Context Provider - Professional Civic Default
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -11,7 +11,7 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => {}
 });
 
@@ -19,7 +19,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('yojana_theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    return 'dark'; // Dark theme default as per Blueprint aesthetic
+    return 'light'; // Clean, professional light theme default
   });
 
   useEffect(() => {

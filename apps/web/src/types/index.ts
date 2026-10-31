@@ -56,16 +56,30 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   evidence_badge?: 'STRONG' | 'PARTIAL' | 'INSUFFICIENT';
+  evidence_reason?: string;
+  is_refusal?: boolean;
   citations?: CitationReference[];
   timestamp: string;
+  passages_retrieved?: number;
 }
 
 export interface CitationReference {
+  citation_tag?: string;
+  index?: number;
   chunk_id: string;
   document_version_id: string;
   page_number: number;
   document_title: string;
-  quote_snippet: string;
+  quote?: string;
+  quote_snippet?: string;
+  boxes?: Array<{
+    page_number?: number;
+    x0?: number;
+    y0?: number;
+    x1?: number;
+    y1?: number;
+    box_type?: string;
+  }>;
 }
 
 export interface QuestionnaireAnswer {
