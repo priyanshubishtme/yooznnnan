@@ -62,3 +62,4 @@ def create_backup(data_dir: str = "./data", backup_dest: str = "./data/backups")
 
 if __name__ == "__main__":
     create_backup()
+

@@ -80,6 +80,18 @@ Preserving full product scope with zero feature deletion.
 - [x] **Privacy-Preserving Telemetry & Analytics (`backend/app/api/v1/analytics.py`)**:
   - Zero PII policy: strictly no IP addresses, phone numbers, citizen names, or persistent cookies collected or logged.
   - Aggregates anonymous platform telemetry: total inquiries, top categories, eligibility queries, and verification rates.
+- [x] **In-Chat SpeechSynthesis (TTS) & Microphone Input (`apps/web/src/pages/citizen/ChatPage.tsx`)**:
+  - Browser-native speech output (`window.speechSynthesis`) on every assistant response in Hindi (`hi-IN`) and English (`en-IN`), automatically stripping citation brackets for fluid speech.
+  - Microphone input button in chat composer for hands-free queries with automatic Web Speech recognition.
+- [x] **Global Offline Resilience Banner & PWA Install Button (`apps/web/src/components/common/Navbar.tsx`)**:
+  - Real-time `online`/`offline` window event monitoring displaying an amber banner across the entire application when disconnected, clearly communicating that Saved Schemes & Checklists are accessible offline while live AI chat and eligibility evaluation require internet.
+  - Listens to `beforeinstallprompt` event and renders an "Install App / ऐप इंस्टॉल" pill with native prompt trigger.
+- [x] **Verified Deadline Reminder Subscription Modal (`apps/web/src/pages/citizen/CitizenSchemeDetailPage.tsx`)**:
+  - Interactive "Deadline Alerts / समय-सीमा अनुस्मारक" button and modal connected to `POST /api/v1/reminders/subscribe`.
+  - Enforces strict Zero-PII privacy standards and displays double opt-in confirmation feedback.
+- [x] **Admin Source Freshness & Privacy Telemetry Dashboard (`apps/web/src/pages/admin/AdminFreshnessPage.tsx`)**:
+  - Live 30-day source staleness tracker, approved portal counts, and aggregate anonymous telemetry.
+  - 1-Click JSON/CSV compliance audit export directly in the browser.
 - [x] **Source Freshness & Audit Export APIs (`backend/app/api/v1/freshness.py`, `backend/app/api/v1/audit_export.py`)**:
   - `GET /api/v1/admin/freshness`: Live source staleness tracker, highlighting portals pending review or overdue for sync.
   - `GET /api/v1/admin/audit/export`: Full compliance audit trail export supporting JSON and CSV formats.

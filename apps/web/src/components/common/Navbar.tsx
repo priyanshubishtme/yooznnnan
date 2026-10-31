@@ -2,9 +2,9 @@
  * Main Navigation Header with Language & Theme Switchers
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Moon, Sun, Menu, X, ShieldCheck, UserCheck, MessageSquare, Layers } from 'lucide-react';
+import { Moon, Sun, Menu, X, ShieldCheck, UserCheck, MessageSquare, Layers, WifiOff, Download } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -13,6 +13,38 @@ export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Monitor network online/offline transitions
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
@@ -287,6 +319,31 @@ export const Navbar: React.FC = () => {
           >
             {t('nav.admin')}
           </Link>
+        </div>
+      )}
+          {/* Global PWA Offline Banner */}
+      {isOffline && (
+        <div
+          style={{
+            background: 'var(--accent-amber)',
+            color: '#78350f',
+            padding: '0.45rem 1rem',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            borderBottom: '1px solid rgba(245, 158, 11, 0.4)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+          }}
+        >
+          <WifiOff size={15} />
+          <span>
+            {language === 'hi'
+              ? 'ऑफ़लाइन मोड सक्रिय: सुरक्षित की गई योजनाएं व चेकलिस्ट ऑफ़लाइन उपलब्ध हैं। लाइव चैट एवं पात्रता गणना के लिए इंटरनेट आवश्यक है।'
+              : 'Offline Mode Active: Saved schemes & checklists are accessible offline. Live AI chat and eligibility evaluation require internet.'}
+          </span>
         </div>
       )}
     </header>

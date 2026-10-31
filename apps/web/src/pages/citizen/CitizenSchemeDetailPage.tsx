@@ -17,7 +17,11 @@ import {
   CheckCircle2,
   Layers,
   Sparkles,
-  Info
+  Info,
+  Bell,
+  X,
+  Check,
+  Mail
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { SchemeItem } from '../../types';
@@ -63,7 +67,53 @@ export const CitizenSchemeDetailPage: React.FC = () => {
   });
 
   // Modal State for PDF Coordinate Evidence Viewer
-  const [activePdfEvidence, setActivePdfEvidence] = useState<{
+  // Verified Email Deadline Reminder Modal State
+  const [showReminderModal, setShowReminderModal] = useState<boolean>(false);
+  const [reminderEmail, setReminderEmail] = useState<string>('');
+  const [reminderSubmitting, setReminderSubmitting] = useState<boolean>(false);
+  const [reminderStatus, setReminderStatus] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const handleSubscribeReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reminderEmail.trim() || !schemeId) return;
+    setReminderSubmitting(true);
+    setReminderStatus(null);
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/reminders/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: reminderEmail.trim(),
+          scheme_id: schemeId,
+          preferred_channel: 'email'
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setReminderStatus({
+          ok: true,
+          message: language === 'hi'
+            ? 'सत्यापन ईमेल भेज दिया गया है! अनुस्मारक सक्रिय करने के लिए कृपया अपना ईमेल इनबॉक्स जांचें।'
+            : 'Double opt-in verification link sent! Please check your inbox to confirm alerts.'
+        });
+        setReminderEmail('');
+      } else {
+        setReminderStatus({
+          ok: false,
+          message: data.error?.message || (language === 'hi' ? 'सदस्यता असफल रही।' : 'Subscription failed.')
+        });
+      }
+    } catch (err) {
+      setReminderStatus({
+        ok: false,
+        message: language === 'hi' ? 'नेटवर्क त्रुटि। कृपया पुनः प्रयास करें।' : 'Network error. Please try again.'
+      });
+    } finally {
+      setReminderSubmitting(false);
+    }
+  };
+
+    const [activePdfEvidence, setActivePdfEvidence] = useState<{
     versionId: string;
     pageNumber: number;
     title?: string;
@@ -182,7 +232,17 @@ export const CitizenSchemeDetailPage: React.FC = () => {
               <span>{language === 'hi' ? 'प्रश्न पूछें' : 'Ask in Chat'}</span>
             </Link>
 
-            {scheme.official_portal_url && (
+            <button
+              onClick={() => setShowReminderModal(true)}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              title={language === 'hi' ? 'सत्यापित समय-सीमा अनुस्मारक' : 'Set verified deadline alert'}
+            >
+              <Bell size={16} />
+              <span>{language === 'hi' ? 'अनुस्मारक' : 'Alerts'}</span>
+            </button>
+
+                        {scheme.official_portal_url && (
               <a href={scheme.official_portal_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
                 <ExternalLink size={15} />
               </a>

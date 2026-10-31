@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Send,
   Sparkles,
@@ -25,7 +26,11 @@ import {
   RefreshCw,
   ExternalLink,
   BookOpen,
-  Filter
+  Filter,
+  Volume2,
+  VolumeX,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { ChatMessage, CitationReference } from '../../types';
@@ -40,6 +45,101 @@ export const ChatPage: React.FC = () => {
   const [selectedCitation, setSelectedCitation] = useState<CitationReference | null>(null);
   const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
   const [selectedSchemeFilter, setSelectedSchemeFilter] = useState<string>('');
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const recognitionRef = useRef<any>(null);
+  const location = useLocation();
+
+  // Listen to incoming voice queries from global VoiceAssistant
+  useEffect(() => {
+    if (location.state && (location.state as any).voiceQuery) {
+      const q = (location.state as any).voiceQuery;
+      handleSend(q);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Web Speech recognition for in-chat mic
+  useEffect(() => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
+
+        recognition.onresult = (event: any) => {
+          let current = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            current += event.results[i][0].transcript;
+          }
+          setInput(current);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognition.onerror = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+      } catch (e) {
+        console.warn('SpeechRecognition init error:', e);
+      }
+    }
+  }, [language]);
+
+  const toggleMic = () => {
+    if (!recognitionRef.current) {
+      alert(language === 'hi' ? 'आपके ब्राउज़र में आवाज़ पहचान समर्थित नहीं है।' : 'Speech recognition is not supported in this browser.');
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.warn('Speech error:', err);
+      }
+    }
+  };
+
+  const toggleSpeech = (msgId: string, textToSpeak: string) => {
+    if (!('speechSynthesis' in window)) {
+      alert(language === 'hi' ? 'आपके ब्राउज़र में स्पीच सिंथेसिस समर्थित नहीं है।' : 'Speech synthesis not supported in this browser.');
+      return;
+    }
+
+    if (speakingMessageId === msgId) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const cleaned = textToSpeak
+      .replace(/\[C\d+(?:,\s*C\d+)*\]/g, '')
+      .replace(/[#*_`]/g, '')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleaned);
+    utterance.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
+    utterance.rate = 0.95;
+
+    utterance.onend = () => setSpeakingMessageId(null);
+    utterance.onerror = () => setSpeakingMessageId(null);
+
+    setSpeakingMessageId(msgId);
+    window.speechSynthesis.speak(utterance);
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize with bilingual welcome message
@@ -385,7 +485,42 @@ export const ChatPage: React.FC = () => {
 
                 {/* Formatted Content with Interactive Inline Citation Pills */}
                 <div>
-                  {m.role === 'assistant' ? renderFormattedContent(m.content, m.citations) : m.content}
+                  {m.role === 'assistant' ? (
+                    <div>
+                      {renderFormattedContent(m.content, m.citations)}
+                      <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSpeech(m.id, m.content)}
+                          className="btn btn-ghost btn-sm"
+                          style={{
+                            fontSize: '0.72rem',
+                            padding: '0.2rem 0.55rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            color: speakingMessageId === m.id ? 'var(--accent-saffron)' : 'var(--text-secondary)',
+                            background: speakingMessageId === m.id ? 'rgba(255, 153, 51, 0.15)' : 'var(--bg-app)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-sm)'
+                          }}
+                          title={language === 'hi' ? 'आवाज़ में सुनें' : 'Listen with Speech'}
+                        >
+                          {speakingMessageId === m.id ? (
+                            <>
+                              <VolumeX size={13} />
+                              <span>{language === 'hi' ? 'रोकें' : 'Stop'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 size={13} />
+                              <span>{language === 'hi' ? 'सुनें (Audio)' : 'Listen'}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : m.content}
                 </div>
 
                 {/* Evidence Quality Badge & Passages Count */}

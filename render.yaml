@@ -64,3 +64,4 @@ services:
         value: "sqlite:////data/yojana_sahayak.db"
       - key: SCHEDULER_PROCESS_MODE
         value: "true" # Active single instance
+

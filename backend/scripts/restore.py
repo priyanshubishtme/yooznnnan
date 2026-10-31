@@ -48,3 +48,4 @@ if __name__ == "__main__":
         print("Usage: python restore.py <path_to_backup.tar.gz>")
         sys.exit(1)
     restore_backup(sys.argv[1])
+

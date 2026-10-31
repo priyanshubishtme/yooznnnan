@@ -13,6 +13,7 @@ import {
   Scale,
   History,
   Activity,
+  BarChart3,
   ArrowLeft
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -37,7 +38,8 @@ export const AdminLayout: React.FC = () => {
     { path: '/admin/review-queue', label: t('admin.nav.reviewQueue'), icon: FileCheck },
     { path: '/admin/documents', label: t('admin.nav.documents'), icon: FileText },
     { path: '/admin/rules', label: t('admin.nav.rules'), icon: Scale },
-    { path: '/admin/audit', label: t('admin.nav.audit'), icon: History }
+    { path: '/admin/audit', label: t('admin.nav.audit'), icon: History },
+    { path: '/admin/freshness', label: 'Freshness & Analytics', icon: BarChart3 }
   ];
 
   const isActive = (path: string, exact: boolean = false) => {

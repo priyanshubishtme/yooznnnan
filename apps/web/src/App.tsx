@@ -37,6 +37,7 @@ import { AdminReviewQueuePage } from './pages/admin/AdminReviewQueuePage';
 import { AdminDocumentsPage } from './pages/admin/AdminDocumentsPage';
 import { AdminRulesPage } from './pages/admin/AdminRulesPage';
 import { AdminAuditPage } from './pages/admin/AdminAuditPage';
+import { AdminFreshnessPage } from './pages/admin/AdminFreshnessPage';
 
 export function App() {
   return (
@@ -79,6 +80,7 @@ export function App() {
                   <Route path="documents" element={<AdminDocumentsPage />} />
                   <Route path="rules" element={<AdminRulesPage />} />
                   <Route path="audit" element={<AdminAuditPage />} />
+                  <Route path="freshness" element={<AdminFreshnessPage />} />
                 </Route>
 
                 {/* Fallback */}

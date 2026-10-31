@@ -60,7 +60,7 @@ async def test_full_40_question_rag_benchmark(benchmark_questions):
             else:
                 refusal_count += 1
                 # Must trigger polite refusal without fabricating facts
-                assert data["is_refusal"] is True or data["evidence_level"] == "INSUFFICIENT"
+                assert data["is_refusal"] is True or data["evidence_level"] == "INSUFFICIENT", f"Refusal query {q['id']} ({q['query']}) returned level={data['evidence_level']}, citations={len(data['citations'])}"
                 # Zero fabricated citations
                 assert len(data["citations"]) == 0, f"Fabricated citations detected on refusal query {q['id']}"
 

@@ -40,3 +40,4 @@
   { "id": "eval-39", "query": "Can an NRI living in London claim Uttarakhand BPL pension?", "language": "en", "expected_type": "supported", "expected_scheme": "SCHEME-UK-OLD-AGE", "category": "boundary_check" },
   { "id": "eval-40", "query": "Does PM-KISAN provide free fertilizer bags directly at the doorstep?", "language": "en", "expected_type": "refusal", "expected_scheme": null, "category": "unsupported_refusal" }
 ]
+

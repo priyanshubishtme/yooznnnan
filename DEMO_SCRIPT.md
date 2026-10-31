@@ -77,3 +77,4 @@
 | Single-Instance APScheduler | `backend/app/scheduler/lock.py` & `run.py` | Verified (Process-level PID lock) |
 | PWA Offline Shell & IndexedDB | `apps/web/public/sw.js` & `apps/web/src/utils/offlineDb.ts` | Verified (IndexedDB + Service Worker cache) |
 | Privacy-Preserving Analytics (Zero PII) | `backend/app/api/v1/analytics.py` | Verified (No IP, no phone, no cookies) |
+
