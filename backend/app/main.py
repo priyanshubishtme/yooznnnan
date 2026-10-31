@@ -4,7 +4,9 @@ Configures middlewares, CORS, error handling, life cycle hooks, and routers.
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.v1.health import router as root_health_router
 from backend.app.api.v1.centre_locator import router as centre_locator_router
@@ -80,6 +82,11 @@ def create_app() -> FastAPI:
 
     # Mount Centre Locator proxy routes (/api/geocode, /api/centres)
     app.include_router(centre_locator_router)
+
+    # Optional static file serving for turnkey production deployment
+    frontend_dist = Path(__file__).resolve().parents[2] / "apps" / "web" / "dist"
+    if frontend_dist.exists():
+        app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 
     return app
 
