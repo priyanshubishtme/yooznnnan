@@ -10,6 +10,10 @@ from backend.app.api.v1.documents import router as documents_router, public_evid
 from backend.app.api.v1.rules import router as rules_router
 from backend.app.api.v1.chat import router as chat_router
 from backend.app.api.v1.eligibility import router as eligibility_router, get_questionnaire_schema
+from backend.app.api.v1.reminders import router as reminders_router
+from backend.app.api.v1.analytics import router as analytics_router
+from backend.app.api.v1.freshness import router as freshness_router
+from backend.app.api.v1.audit_export import router as audit_export_router
 
 api_v1_router = APIRouter()
 
@@ -23,6 +27,8 @@ api_v1_router.include_router(public_evidence_router)
 api_v1_router.include_router(rules_router)
 api_v1_router.include_router(chat_router)
 api_v1_router.include_router(eligibility_router)
+api_v1_router.include_router(reminders_router)
+api_v1_router.include_router(analytics_router)
+api_v1_router.include_router(freshness_router)
+api_v1_router.include_router(audit_export_router)
 api_v1_router.add_api_route("/questionnaire", get_questionnaire_schema, methods=["GET"])
-
-
