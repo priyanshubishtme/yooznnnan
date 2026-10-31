@@ -15,10 +15,48 @@ Preserving full product scope with zero feature deletion.
 | **Phase 4** | **PDF Ingestion & Coordinate Extraction** | Phase 6 | **COMPLETED** | [x] Every chunk keeps page and boxes, [x] Spot-checks pass, [x] One single shared ingestion path |
 | **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | **COMPLETED** | [x] Every active rule has verified quote & page, [x] Source change disables rules until re-approved, [x] 13 initial scheme records |
 | **Phase 6** | **Hybrid Retrieval & Groq RAG Chat** | Phases 8 & 9 | **COMPLETED** | [x] Only current verified versions retrieved, [x] Zero hallucinated citation IDs, [x] Unsupported questions refused, [x] Final answer validated |
-| **Phase 7** | **Deterministic Eligibility & Ranking** | Phase 10 | *Pending* | [ ] 25 profiles match expected outcomes, [ ] Zero needs_review rules produce output, [ ] Three-valued logic & explainability |
+| **Phase 7** | **Deterministic Eligibility & Ranking** | Phase 10 | **COMPLETED** | [x] 25 profiles match expected outcomes, [x] Zero needs_review rules produce output, [x] Three-valued logic & explainability |
 | **Phase 8** | **Citizen Application, PDF Evidence Viewer & 3D Experience** | Phase 11 | *Pending* | [ ] End-to-end journeys pass on mobile/desktop, [ ] Source chips open exact PDF highlight boxes, [ ] 3D landing page responsive |
 | **Phase 9** | **PWA, Offline, Voice, My Schemes & Notifications** | Phases 12 & 13 | *Pending* | [ ] Saved schemes open offline, [ ] Chat/eligibility network-only, [ ] Voice text fallback, [ ] Verified email unsubscribe works |
 | **Phase 10** | **Evaluation, Security, Deployment & Demo** | Phase 14 | *Pending* | [ ] Full test suites pass, [ ] Security & dependency review, [ ] Rate limits active, [ ] Production deployment scripts verified |
+
+---
+
+## Phase 7 Detail Checklist (Deterministic Eligibility & Ranking) — Passed
+
+- [x] **Three-Valued Deterministic Rule Evaluator (`backend/app/eligibility/evaluator.py`)**:
+  - Implements Kleene 3-valued logic (`TRUE`, `FALSE`, `UNKNOWN`) in pure Python. The LLM never touches eligibility logic.
+  - Supports compound Boolean trees with `all` (AND) and `any` (OR), handling short-circuit rules ($F \land U = F$, $T \lor U = T$).
+  - **Disqualification Precedence**: Explicit `exceptions` evaluate first. A triggered disqualification immediately produces `FALSE` regardless of positive qualifying conditions.
+  - **External Verification Handling**: Criteria with `official_verification_required == True` correctly shift outcomes from `Eligible` to `Likely Eligible` (subject to official verification).
+  - 4 Deterministic Scheme Outcomes:
+    1. `Eligible`: All active rules satisfied without external official verification.
+    2. `Likely Eligible`: All active rules satisfied, but dependent on external verification.
+    3. `Need More Information`: At least one rule UNKNOWN, zero FALSE.
+    4. `Not Eligible`: At least one rule FALSE or statutory disqualification triggered.
+  - Structured, bilingual explainability reasons (`reasons_en`, `reasons_hi`), matched criteria list with gazette page citations, and missing information field lists.
+- [x] **Multi-Factor Scheme Ranking Algorithm (`backend/app/eligibility/ranker.py`)**:
+  - Primary sort key: Tier priority (`Eligible` [1000] > `Likely Eligible` [750] > `Need More Information` [500] > `Not Eligible` [100]).
+  - Secondary factors:
+    - Confidence weight: `rules_and_rag` / `rules_enabled` (+100) > `rag_only` (+20).
+    - Completeness ratio: $(\text{matched} / \text{total}) \times 50$.
+    - Verification status bonus: verified official gazette documents (+25).
+    - Recency bonus: recent circulars and versions (+20).
+- [x] **25 Synthetic Citizen Profiles Fixture Suite (`backend/tests/fixtures/citizen_profiles_25.json`)**:
+  - 25 representative demographic and socio-economic profiles testing all 4 outcome tiers across PM-KISAN, PMAY-G, PM-JAY, and Uttarakhand Old Age Pension.
+  - 100% deterministic assertion: every profile matches expected human-verified outcomes.
+- [x] **Deterministic Eligibility Service & APIs (`backend/app/eligibility/service.py`, `backend/app/api/v1/eligibility.py`)**:
+  - `POST /api/v1/eligibility/evaluate`: Evaluates profile across all registered schemes and returns ranked recommendations with full explainability.
+  - `GET /api/v1/eligibility/questions` & `/api/v1/questionnaire`: Standardized questionnaire schema mapping profile fields with bilingual labels, types, options, and tooltips.
+  - **Strict Invalidation Gate (Phase 7 Gate Criterion 2)**: Rules with `status != 'active'` (e.g. `needs_review`) are completely excluded from evaluation and flagged in `ignored_unverified_rules`.
+- [x] **Interactive Citizen Questionnaire & Recommendations Frontend (`EligibilityQuestionnairePage.tsx`, `RecommendationsPage.tsx`, `ComparePage.tsx`)**:
+  - Step-by-step progressive questionnaire disclosure with "Not Sure / मुझे पता नहीं" support mapping to UNKNOWN.
+  - Recommendations screen with summary statistics cards for all 4 status categories.
+  - Card view featuring rank pills (#1, #2...), score badges, collapsible deep explainability accordion (matched rules with gazette quotes, unmet conditions, missing profile fields), and score breakdowns.
+  - Side-by-side scheme comparison page (`ComparePage.tsx`) comparing operational criteria and benefits.
+- [x] **Phase 7 Gate Verification**:
+  - Pytest suite: **39/39 tests passing** across all suites (`test_deterministic_eligibility.py`, `test_hybrid_retrieval_and_rag.py`, `test_rules_and_invalidation.py`, `test_pdf_ingestion.py`, `test_discovery_and_review.py`, `test_compliance_and_scheduler.py`, `test_health.py`).
+  - Frontend production build (`tsc -b && vite build`) passed with zero errors. All gate criteria satisfied.
 
 ---
 

@@ -9,6 +9,7 @@ from backend.app.api.v1.review import router as review_router
 from backend.app.api.v1.documents import router as documents_router
 from backend.app.api.v1.rules import router as rules_router
 from backend.app.api.v1.chat import router as chat_router
+from backend.app.api.v1.eligibility import router as eligibility_router, get_questionnaire_schema
 
 api_v1_router = APIRouter()
 
@@ -20,5 +21,7 @@ api_v1_router.include_router(review_router)
 api_v1_router.include_router(documents_router)
 api_v1_router.include_router(rules_router)
 api_v1_router.include_router(chat_router)
+api_v1_router.include_router(eligibility_router)
+api_v1_router.add_api_route("/questionnaire", get_questionnaire_schema, methods=["GET"])
 
 

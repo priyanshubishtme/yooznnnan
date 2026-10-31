@@ -109,6 +109,51 @@ export interface EligibilityResult {
   reason: string;
 }
 
+export interface RankedSchemeRecommendation {
+  rank: number;
+  score: number;
+  tier: 'Eligible' | 'Likely Eligible' | 'Need More Information' | 'Not Eligible';
+  confidence_mode: string;
+  completeness_ratio: number;
+  score_breakdown: {
+    tier_base: number;
+    confidence_weight: number;
+    completeness: number;
+    verification_status: number;
+    recency: number;
+  };
+  evaluation: {
+    scheme_id: string;
+    scheme_name_en: string;
+    scheme_name_hi: string;
+    outcome: 'Eligible' | 'Likely Eligible' | 'Need More Information' | 'Not Eligible';
+    active_rules_evaluated: number;
+    rules_matched: Array<{
+      rule_id: string;
+      rule_code: string;
+      state: string;
+      evidence_quote: string;
+      page_reference: number;
+      matched_criteria: string[];
+      requires_official_verification: boolean;
+    }>;
+    rules_unmet: Array<{
+      rule_id: string;
+      rule_code: string;
+      state: string;
+      evidence_quote: string;
+      page_reference: number;
+      unmet_criteria: string[];
+      is_disqualified_by_exception: boolean;
+    }>;
+    missing_fields: string[];
+    ignored_unverified_rules: string[];
+    reasons_en: string[];
+    reasons_hi: string[];
+    requires_official_verification: boolean;
+  };
+}
+
 export interface DiscoveryJob {
   id: string;
   source_id: string;

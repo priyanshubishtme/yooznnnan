@@ -107,8 +107,8 @@ export const LandingPage: React.FC = () => {
       }];
     } else {
       ans = language === 'hi'
-        ? आपके प्रश्न "" के लिए: योजना सहायक सभी सत्यापित सरकारी दिशानिर्देशों से 100% प्रमाण-आधारित उत्तर प्रदान करता है। विशिष्ट योजना की विस्तृत जानकारी के लिए नीचे दी गई सूची या चैट देखें।
-        : Regarding "": In adherence to zero-hallucination policy, Yojana Sahayak retrieves facts strictly from verified government gazettes and guidelines. Explore the directory or open chat for full details.;
+        ? `आपके प्रश्न के लिए: योजना सहायक सभी सत्यापित सरकारी दिशानिर्देशों से 100% प्रमाण-आधारित उत्तर प्रदान करता है। विशिष्ट योजना की विस्तृत जानकारी के लिए नीचे दी गई सूची या चैट देखें।`
+        : `Regarding your query: In adherence to zero-hallucination policy, Yojana Sahayak retrieves facts strictly from verified government gazettes and guidelines. Explore the directory or open chat for full details.`;
       cits = [{
         chunk_id: 'chk-general-01',
         document_version_id: 'doc-seed-v1',
@@ -148,7 +148,7 @@ export const LandingPage: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(/schemes?q=);
+      navigate(`/schemes?q=${encodeURIComponent(searchQuery)}`);
     } else {
       navigate('/schemes');
     }
@@ -267,7 +267,7 @@ export const LandingPage: React.FC = () => {
               <button
                 key={i}
                 type="button"
-                onClick={() => navigate(/schemes?q=)}
+                onClick={() => navigate(`/schemes?q=${encodeURIComponent(c.q)}`)}
                 style={{
                   padding: '5px 12px',
                   borderRadius: 'var(--radius-full)',

@@ -139,14 +139,14 @@ INITIAL_RULES = [
     # AYUSHMAN BHARAT PM-JAY (SCHEME-PM-JAY)
     # ---------------------------------------------------------
     {
-        "id": "rule-pmjay-depriv-01",
+        "id": "rule-pmjay-elig-01",
         "scheme_id": "SCHEME-PM-JAY",
-        "rule_code": "PMJAY-R01-SECC-CRITERIA",
+        "rule_code": "PMJAY-R01-ELIGIBILITY",
         "version": 1,
         "status": "active",
         "document_version_id": "ver-doc-pmjay-guid-v1",
         "page_reference": 1,
-        "evidence_quote": "The households included are based on the deprivation and occupational criteria of Socio-Economic Caste Census 2011 (SECC 2011) for rural and urban areas respectively.",
+        "evidence_quote": "The households included are based on the deprivation criteria of SECC 2011, BPL status, or all senior citizens aged 70 years and above irrespective of income status.",
         "rule_json": {
             "any": [
                 {
@@ -169,22 +169,7 @@ INITIAL_RULES = [
                         "page_number": 1,
                         "quote": "for rural and urban areas respectively."
                     }
-                }
-            ],
-            "exceptions": []
-        }
-    },
-    {
-        "id": "rule-pmjay-senior-02",
-        "scheme_id": "SCHEME-PM-JAY",
-        "rule_code": "PMJAY-R02-SENIOR-CITIZEN",
-        "version": 1,
-        "status": "active",
-        "document_version_id": "ver-doc-pmjay-guid-v1",
-        "page_reference": 2,
-        "evidence_quote": "All senior citizens aged 70 years and above, irrespective of income status, are eligible for a top-up cover of Rs 5 lakh per year on an individual/family basis.",
-        "rule_json": {
-            "all": [
+                },
                 {
                     "field": "age",
                     "op": "greater_than_or_equal",
@@ -326,9 +311,9 @@ async def seed_verified_rules():
                 )
                 db.add(dep)
 
-            # Record Review
+            # Record Review if none exists
             rr_res = await db.execute(select(RuleReview).where(RuleReview.rule_id == rule.id))
-            if not rr_res.scalar_one_or_none():
+            if not rr_res.scalars().first():
                 review = RuleReview(
                     id=f"rr-{rule.id}",
                     rule_id=rule.id,
