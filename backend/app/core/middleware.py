@@ -22,7 +22,14 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+
+        # Allow in-browser PDF preview / iframe embedding for verified evidence gazettes
+        if "/evidence" in request.url.path or request.url.path.endswith("/pdf"):
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+            response.headers["Content-Security-Policy"] = "frame-ancestors 'self' http://localhost:* http://127.0.0.1:*"
+        else:
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
         # Exclude noisy health endpoint from info level logs

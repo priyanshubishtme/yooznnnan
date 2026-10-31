@@ -171,21 +171,35 @@ class GroqProvider(LLMProvider):
         system_prompt = HINDI_SYSTEM_PROMPT if language == "hi" else ENGLISH_SYSTEM_PROMPT
         user_message = f"VERIFIED CONTEXT PASSAGES:\n{context_str}\n\nCITIZEN QUESTION:\n{query}"
 
-        try:
-            resp = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
-                ],
-                temperature=settings.llm_temperature,
-                max_tokens=settings.llm_max_output_tokens
-            )
-            raw_text = resp.choices[0].message.content or ""
-            return raw_text.strip()
-        except Exception as e:
-            logger.error(f"Groq API error: {e}. Falling back to deterministic grounded generator.")
-            return await self.fallback.generate_answer(query, retrieved_chunks, language)
+        for attempt in range(3):
+            try:
+                resp = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message}
+                    ],
+                    temperature=settings.llm_temperature,
+                    max_tokens=1024,
+                    extra_body={"reasoning_format": "hidden"}
+                )
+                raw_text = resp.choices[0].message.content or ""
+                if not raw_text.strip():
+                    logger.warning("Groq returned empty text; using deterministic grounded fallback.")
+                    return await self.fallback.generate_answer(query, retrieved_chunks, language)
+                return raw_text.strip()
+            except Exception as e:
+                err_str = str(e)
+                if ("429" in err_str or "rate limit" in err_str.lower()) and attempt < 2:
+                    delay = 1.5 * (attempt + 1)
+                    match = re.search(r"try again in (\d+(?:\.\d+)?)ms", err_str)
+                    if match:
+                        delay = max(0.5, float(match.group(1)) / 1000.0 + 0.2)
+                    logger.warning(f"Groq 429 rate limit hit. Backing off for {delay:.2f}s (attempt {attempt+1}/3)...")
+                    await asyncio.sleep(delay)
+                    continue
+                logger.error(f"Groq API error: {e}. Falling back to deterministic grounded generator.")
+                return await self.fallback.generate_answer(query, retrieved_chunks, language)
 
 
 class RAGChatService:
@@ -211,7 +225,7 @@ class RAGChatService:
             scheme_id=scheme_id,
             dense_k=settings.dense_k,
             sparse_k=settings.sparse_k,
-            final_k=5
+            final_k=8
         )
 
         # 2. Grounded Generation

@@ -284,6 +284,11 @@ def evaluate_rule(
 ) -> RuleEvaluationResult:
     """Evaluates an EligibilityRule enforcing disqualification exception precedence."""
     rule_dict = rule.rule_json or {}
+    if isinstance(rule_dict, str):
+        try:
+            rule_dict = json.loads(rule_dict)
+        except Exception:
+            rule_dict = {}
 
     # 1. Evaluate Disqualification Exceptions First
     exceptions = rule_dict.get("exceptions", [])

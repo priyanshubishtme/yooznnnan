@@ -404,3 +404,165 @@ class AuditEvent(Base):
     resource_id: Mapped[str] = mapped_column(String(64), nullable=False)
     details_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class CitizenProfile(Base, TimestampMixin):
+    """Citizen demographic, location, socio-economic, and vocational profile.
+    
+    Serves as the persistent database source of truth for eligibility prefilling,
+    citizen dashboard, and one-click re-evaluation.
+    """
+    __tablename__ = "citizen_profiles"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_identifier: Mapped[str] = mapped_column(String(128), default="citizen-default", index=True)
+    full_name: Mapped[Optional[str]] = mapped_column(String(255))
+    phone: Mapped[Optional[str]] = mapped_column(String(32))
+    email: Mapped[Optional[str]] = mapped_column(String(255))
+    language: Mapped[str] = mapped_column(String(8), default="hi")
+
+    # Category 1: Personal Information
+    age: Mapped[Optional[int]] = mapped_column(Integer)
+    gender: Mapped[Optional[str]] = mapped_column(String(32))  # male | female | transgender | other
+    marital_status: Mapped[Optional[str]] = mapped_column(String(32))  # unmarried | married | widowed | divorced
+    caste_category: Mapped[Optional[str]] = mapped_column(String(32))  # general | obc | sc | st
+    minority_status: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    is_differently_abled: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    disability_percentage: Mapped[Optional[int]] = mapped_column(Integer)
+    has_disability_certificate: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+
+    # Category 2: Residential Information
+    state: Mapped[Optional[str]] = mapped_column(String(64))
+    district: Mapped[Optional[str]] = mapped_column(String(128))
+    pincode: Mapped[Optional[str]] = mapped_column(String(16))
+    area_type: Mapped[Optional[str]] = mapped_column(String(32), default="rural")  # rural | urban
+    is_rural_resident: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
+    domicile_status: Mapped[Optional[str]] = mapped_column(String(64))
+
+    # Category 3: Financial Information
+    annual_income: Mapped[Optional[float]] = mapped_column(Float)
+    is_bpl: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    ration_card_type: Mapped[Optional[str]] = mapped_column(String(32))  # none | apl | bpl | antyodaya
+    is_income_tax_payer: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    secc_deprived: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+
+    # Category 4: Employment & Occupation
+    employment_type: Mapped[Optional[str]] = mapped_column(String(64))  # unemployed | salaried_govt | salaried_private | self_employed | daily_wage | student | retired
+    occupation: Mapped[Optional[str]] = mapped_column(String(128))
+    is_unorganized_worker: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    is_institutional_landholder: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    is_constitutional_post_holder: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+
+    # Category 5: Agricultural Information
+    is_farmer: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    owns_cultivable_land: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    landholding_acres: Mapped[Optional[float]] = mapped_column(Float)
+    land_ownership_type: Mapped[Optional[str]] = mapped_column(String(64))  # individual | joint | tenant | institutional
+    crop_types: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)
+
+    # Category 6: Education
+    highest_education: Mapped[Optional[str]] = mapped_column(String(64))  # illiterate | primary | secondary | higher_secondary | diploma | graduate | post_graduate
+    is_student: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    current_course: Mapped[Optional[str]] = mapped_column(String(128))
+    institution_type: Mapped[Optional[str]] = mapped_column(String(64))
+    percentile_score: Mapped[Optional[float]] = mapped_column(Float)
+    is_regular_college_student: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+
+    # Category 7: Documents & Identification
+    has_aadhaar: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
+    has_jan_dhan_account: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    has_ration_card: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    has_land_records: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    has_income_certificate: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    has_caste_certificate: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    has_pucca_house: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    ekyc_completed: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+
+    # Progression and raw answer cache
+    completed_steps: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list)
+    raw_attributes: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, default=dict)
+
+    # Relationships
+    assessment_responses = relationship("AssessmentResponse", back_populates="profile", cascade="all, delete-orphan")
+    assessment_history = relationship("AssessmentHistory", back_populates="profile", cascade="all, delete-orphan")
+    saved_schemes = relationship("CitizenSavedScheme", back_populates="profile", cascade="all, delete-orphan")
+    applications = relationship("ApplicationTrackerRecord", back_populates="profile", cascade="all, delete-orphan")
+
+
+class AssessmentResponse(Base, TimestampMixin):
+    """In-progress or completed questionnaire response state per citizen."""
+    __tablename__ = "assessment_responses"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    profile_id: Mapped[str] = mapped_column(String(64), ForeignKey("citizen_profiles.id"), nullable=False)
+    current_step: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(32), default="in_progress")  # in_progress | completed
+    answers_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    profile = relationship("CitizenProfile", back_populates="assessment_responses")
+
+
+class AssessmentHistory(Base):
+    """Immutable audit trail of a completed deterministic eligibility evaluation run."""
+    __tablename__ = "assessment_history"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    profile_id: Mapped[str] = mapped_column(String(64), ForeignKey("citizen_profiles.id"), nullable=False)
+    total_schemes_evaluated: Mapped[int] = mapped_column(Integer, default=0)
+    eligible_count: Mapped[int] = mapped_column(Integer, default=0)
+    likely_eligible_count: Mapped[int] = mapped_column(Integer, default=0)
+    more_info_count: Mapped[int] = mapped_column(Integer, default=0)
+    not_eligible_count: Mapped[int] = mapped_column(Integer, default=0)
+    counts_json: Mapped[Optional[Dict[str, int]]] = mapped_column(JSON, default=dict)
+    ranked_schemes_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    profile = relationship("CitizenProfile", back_populates="assessment_history")
+
+
+class CitizenSavedScheme(Base, TimestampMixin):
+    """Citizen bookmarked scheme with application intent and status."""
+    __tablename__ = "citizen_saved_schemes"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    profile_id: Mapped[str] = mapped_column(String(64), ForeignKey("citizen_profiles.id"), nullable=False)
+    scheme_id: Mapped[str] = mapped_column(String(64), ForeignKey("schemes.scheme_id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="saved")  # saved | applying | applied | beneficiary
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    deadline: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    profile = relationship("CitizenProfile", back_populates="saved_schemes")
+    scheme = relationship("Scheme")
+
+
+class ApplicationTrackerRecord(Base, TimestampMixin):
+    """End-to-end tracked citizen government scheme application with stage milestones."""
+    __tablename__ = "application_tracker_records"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    profile_id: Mapped[str] = mapped_column(String(64), ForeignKey("citizen_profiles.id"), nullable=False)
+    scheme_id: Mapped[str] = mapped_column(String(64), ForeignKey("schemes.scheme_id"), nullable=False)
+    application_reference: Mapped[str] = mapped_column(String(128), nullable=False)
+    portal_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    current_status: Mapped[str] = mapped_column(String(64), default="submitted")  # submitted | under_scrutiny | field_verification | approved | rejected | dbt_released
+    submission_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_status_update: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    timeline_steps_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)
+    remarks: Mapped[Optional[str]] = mapped_column(Text)
+
+    profile = relationship("CitizenProfile", back_populates="applications")
+    scheme = relationship("Scheme")
+
+
+class User(Base, TimestampMixin):
+    """User account model for citizen access and administrative authority."""
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
+    role: Mapped[str] = mapped_column(String(32), default="CITIZEN", index=True)  # CITIZEN | ADMIN
+    account_status: Mapped[str] = mapped_column(String(32), default="active")  # active | suspended
+    phone: Mapped[Optional[str]] = mapped_column(String(32))
+    preferences: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, default=dict)

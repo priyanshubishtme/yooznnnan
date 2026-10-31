@@ -1,20 +1,22 @@
-﻿/**
- * Main Navigation Header with Language & Theme Switchers
+/**
+ * Main Navigation Header — Neo-Brutalist Indian Civic Design
+ * Matches the official Yojana Sahayak brand design system.
  */
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Moon, Sun, Menu, X, ShieldCheck, UserCheck, MessageSquare, Layers, WifiOff, Download } from 'lucide-react';
+import { ShieldCheck, WifiOff, Lock, User, CheckCircle2, ChevronDown } from 'lucide-react';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export const Navbar: React.FC = () => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Monitor network online/offline transitions
   useEffect(() => {
@@ -24,27 +26,11 @@ export const Navbar: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    const handleBeforeInstall = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
     };
   }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
-  };
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
@@ -53,299 +39,152 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header
-      className="glass-panel"
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        borderRadius: 0,
-        borderTop: 'none',
-        borderLeft: 'none',
-        borderRight: 'none',
-        borderBottom: '1px solid var(--border-subtle)',
-        background: 'var(--bg-card)'
-      }}
-    >
-      <div
-        className="container"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: '64px'
-        }}
-      >
+    <>
+      <header className="yl-head">
         {/* Brand Logo */}
-        <Link
-          to="/"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.65rem',
-            textDecoration: 'none'
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              fontWeight: 700
-            }}
-          >
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: '1.15rem',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1,
-                color: 'var(--text-primary)'
-              }}
-            >
-              {language === 'hi' ? 'योजना सहायक' : 'Yojana Sahayak'}
-            </div>
-            <div
-              style={{
-                fontSize: '0.68rem',
-                color: 'var(--text-muted)',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}
-            >
-              {language === 'hi' ? 'सरकारी योजना सेवा' : 'Gov Scheme Intelligence'}
-            </div>
-          </div>
+        <Link to="/" className="yl-brand" aria-label="Yojana Sahayak Home">
+          <span className="yl-logo">
+            <ShieldCheck size={22} />
+          </span>
+          <span>
+            <b>{language === 'hi' ? 'योजना सहायक' : 'Yojana Sahayak'}</b>
+            <small>{language === 'hi' ? 'सरकारी योजना इंटेलिजेंस' : 'GOV SCHEME INTELLIGENCE'}</small>
+          </span>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1.5rem'
-          }}
-          className="desktop-nav"
-        >
+        <nav id="nv" className={mobileMenuOpen ? 'open' : ''}>
           <Link
             to="/schemes"
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              color: isActive('/schemes') ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              textDecoration: 'none'
-            }}
+            className={isActive('/schemes') ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
           >
-            {language === 'hi' ? 'योजनाएं' : 'Schemes'}
+            {language === 'hi' ? 'योजनाएँ' : 'Schemes'}
+          </Link>
+
+          <Link
+            to="/eligibility"
+            className={isActive('/eligibility') ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            {language === 'hi' ? 'पात्रता जांच' : 'Eligibility'}
           </Link>
 
           <Link
             to="/compare"
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              color: isActive('/compare') ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
+            className={isActive('/compare') ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
           >
-            <Layers size={14} />
-            <span>{language === 'hi' ? 'योजना तुलना' : 'Compare'}</span>
+            {language === 'hi' ? 'तुलना' : 'Compare'}
           </Link>
 
           <Link
             to="/chat"
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              color: isActive('/chat') ? 'var(--accent-primary)' : 'var(--accent-primary)',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent-primary-light)'
-            }}
+            className={`chat ${isActive('/chat') ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
           >
-            <MessageSquare size={15} />
-            <span>{language === 'hi' ? 'AI चैटबॉट (RAG)' : 'AI Chatbot (RAG)'}</span>
+            {language === 'hi' ? 'AI चैटबॉट (RAG)' : 'AI Chatbot (RAG)'}
           </Link>
 
           <Link
-            to="/how-it-works"
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              color: isActive('/how-it-works') ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              textDecoration: 'none'
-            }}
+            to="/centre-locator"
+            className={isActive('/centre-locator') ? 'active' : ''}
+            onClick={() => setMobileMenuOpen(false)}
           >
-            {t('nav.howItWorks')}
+            {language === 'hi' ? 'केंद्र खोजें' : 'Centre Locator'}
           </Link>
 
           <Link
             to="/app"
-            className="btn btn-sm btn-primary"
-            style={{ textDecoration: 'none', fontSize: '0.82rem', height: '34px', padding: '0 12px' }}
+            className={`cta ${isActive('/app') ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
           >
-            <UserCheck size={15} />
-            <span>{t('nav.app')}</span>
+            {language === 'hi' ? 'नागरिक ऐप' : 'Citizen App'}
           </Link>
 
           <Link
             to="/admin"
-            className="btn btn-sm btn-secondary"
-            style={{ textDecoration: 'none', fontSize: '0.82rem', height: '34px', padding: '0 12px' }}
+            className="ghost"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            onClick={() => setMobileMenuOpen(false)}
+            title={isAdminAuthenticated ? "Administrator Console (Unlocked)" : "Administrator Console (Restricted - Master Key Required)"}
           >
-            <span>{t('nav.admin')}</span>
+            {!isAdminAuthenticated && <Lock size={13} style={{ opacity: 0.75 }} />}
+            {isAdminAuthenticated && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)' }} />}
+            <span>{language === 'hi' ? 'एडमिन कंसोल' : 'Admin Console'}</span>
           </Link>
         </nav>
 
-        {/* Global Controls: Language & Theme */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* Language Switcher */}
+        {/* Controls: Language, Theme, Mobile Menu */}
+        <div className="yl-tools">
           <button
+            className="yl-ic"
+            type="button"
             onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
-            className="btn btn-secondary"
-            style={{
-              padding: '0 10px',
-              height: '34px',
-              fontSize: '0.78rem',
-              fontWeight: 600
-            }}
             title={language === 'hi' ? 'Switch to English' : 'हिंदी में बदलें'}
           >
-            {language === 'hi' ? 'EN' : 'हिन्दी'}
+            {language === 'hi' ? 'English' : 'हिन्दी'}
           </button>
 
-          {/* Theme Switcher */}
           <button
+            className="yl-ic"
+            type="button"
             onClick={toggleTheme}
-            className="btn btn-secondary"
-            style={{
-              width: '34px',
-              height: '34px',
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            aria-label={
+              theme === 'dark'
+                ? (language === 'hi' ? 'लाइट थीम' : 'Light Mode')
+                : theme === 'light'
+                ? (language === 'hi' ? 'डार्क थीम' : 'Dark Mode')
+                : (language === 'hi' ? 'सिस्टम थीम' : 'System Theme')
+            }
+            title={
+              theme === 'dark'
+                ? (language === 'hi' ? 'लाइट थीम (क्लिक करें)' : 'Theme: Dark (Click to switch)')
+                : theme === 'light'
+                ? (language === 'hi' ? 'डार्क थीम (क्लिक करें)' : 'Theme: Light (Click to switch)')
+                : (language === 'hi' ? 'सिस्टम थीम (क्लिक करें)' : 'Theme: System (Click to switch)')
+            }
           >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            {theme === 'dark' ? '☀' : theme === 'light' ? '🌙' : '💻'}
           </button>
 
-          {/* Mobile Menu Hamburger */}
           <button
+            className="yl-ic menu"
+            type="button"
+            aria-label="Toggle navigation menu"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="mobile-nav-toggle btn btn-secondary"
-            style={{ width: '34px', height: '34px', padding: 0 }}
           >
-            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            {mobileMenuOpen ? '✕' : '☰'}
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div
-          style={{
-            padding: '1rem',
-            borderTop: '1px solid var(--border-subtle)',
-            background: 'var(--bg-surface)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem'
-          }}
-        >
-          <Link
-            to="/schemes"
-            onClick={() => setMobileMenuOpen(false)}
-            style={{ padding: '0.4rem 0', fontWeight: 500, color: 'var(--text-primary)', textDecoration: 'none' }}
-          >
-            {language === 'hi' ? 'योजनाएं' : 'Schemes Directory'}
-          </Link>
-
-          <Link
-            to="/compare"
-            onClick={() => setMobileMenuOpen(false)}
-            style={{ padding: '0.4rem 0', fontWeight: 500, color: 'var(--text-primary)', textDecoration: 'none' }}
-          >
-            {language === 'hi' ? 'योजना तुलना' : 'Compare Schemes'}
-          </Link>
-
-          <Link
-            to="/chat"
-            onClick={() => setMobileMenuOpen(false)}
-            style={{ padding: '0.4rem 0', fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none' }}
-          >
-            {language === 'hi' ? 'AI चैटबॉट (RAG Assistant)' : 'AI Chatbot (RAG Assistant)'}
-          </Link>
-
-          <Link
-            to="/how-it-works"
-            onClick={() => setMobileMenuOpen(false)}
-            style={{ padding: '0.4rem 0', fontWeight: 500, color: 'var(--text-primary)', textDecoration: 'none' }}
-          >
-            {t('nav.howItWorks')}
-          </Link>
-
-          <Link
-            to="/app"
-            onClick={() => setMobileMenuOpen(false)}
-            className="btn btn-primary"
-            style={{ justifyContent: 'center', textDecoration: 'none' }}
-          >
-            <UserCheck size={16} />
-            {t('nav.app')}
-          </Link>
-
-          <Link
-            to="/admin"
-            onClick={() => setMobileMenuOpen(false)}
-            className="btn btn-secondary"
-            style={{ justifyContent: 'center', textDecoration: 'none' }}
-          >
-            {t('nav.admin')}
-          </Link>
-        </div>
-      )}
-          {/* Global PWA Offline Banner */}
+      {/* Global PWA Offline Banner */}
       {isOffline && (
         <div
           style={{
-            background: 'var(--accent-amber)',
-            color: '#78350f',
+            background: 'var(--saf)',
+            color: '#1b1f3b',
             padding: '0.45rem 1rem',
-            fontSize: '0.8rem',
-            fontWeight: 600,
+            fontSize: '0.82rem',
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.5rem',
-            borderBottom: '1px solid rgba(245, 158, 11, 0.4)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            borderBottom: '2px solid var(--ink)',
           }}
         >
-          <WifiOff size={15} />
+          <WifiOff size={16} />
           <span>
             {language === 'hi'
-              ? 'ऑफ़लाइन मोड सक्रिय: सुरक्षित की गई योजनाएं व चेकलिस्ट ऑफ़लाइन उपलब्ध हैं। लाइव चैट एवं पात्रता गणना के लिए इंटरनेट आवश्यक है।'
-              : 'Offline Mode Active: Saved schemes & checklists are accessible offline. Live AI chat and eligibility evaluation require internet.'}
+              ? 'ऑफ़लाइन मोड: सहेजी गई योजनाएं उपलब्ध हैं। लाइव चैट एवं पात्रता गणना के लिए इंटरनेट आवश्यक है।'
+              : 'Offline Mode: Saved schemes & checklists are accessible. Live AI chat requires an internet connection.'}
           </span>
         </div>
       )}
-    </header>
+    </>
   );
 };
+
+export default Navbar;

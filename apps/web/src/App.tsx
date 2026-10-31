@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Main Application Routing Shell for Yojana Sahayak
  */
 
@@ -6,10 +6,14 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { AdminAuthProvider } from './context/AdminAuthContext';
 import { Navbar } from './components/common/Navbar';
 import { CitizenLayout } from './components/common/CitizenLayout';
 import { AdminLayout } from './components/common/AdminLayout';
-import { VoiceAssistant } from './components/VoiceAssistant';
+import { RobotCompanion } from './components/assistant/RobotCompanion';
+
+// Centre Locator
+import { CentreLocator } from './features/centre-locator';
 
 // Public Pages
 import { LandingPage } from './pages/public/LandingPage';
@@ -43,7 +47,8 @@ export function App() {
   return (
     <LanguageProvider>
       <ThemeProvider>
-        <BrowserRouter>
+        <AdminAuthProvider>
+          <BrowserRouter>
           <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar />
 
@@ -55,12 +60,14 @@ export function App() {
                 <Route path="/schemes" element={<PublicSchemesPage />} />
                 <Route path="/schemes/:schemeId" element={<PublicSchemeDetailPage />} />
                 <Route path="/chat" element={<ChatPage />} />
+                <Route path="/centre-locator" element={<CentreLocator />} />
                 <Route path="/compare" element={<ComparePage />} />
 
                 {/* Citizen Portal Routes */}
                 <Route path="/app" element={<CitizenLayout />}>
                   <Route index element={<CitizenDashboardPage />} />
                   <Route path="chat" element={<ChatPage />} />
+                  <Route path="centre-locator" element={<CentreLocator />} />
                   <Route path="compare" element={<ComparePage />} />
                   <Route path="discover" element={<CitizenDiscoverPage />} />
                   <Route path="eligibility" element={<EligibilityQuestionnairePage />} />
@@ -89,9 +96,10 @@ export function App() {
             </div>
 
             {/* Global Friendly Voice Assistant */}
-            <VoiceAssistant />
+            <RobotCompanion />
           </div>
         </BrowserRouter>
+        </AdminAuthProvider>
       </ThemeProvider>
     </LanguageProvider>
   );

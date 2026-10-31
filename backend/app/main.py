@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.v1.health import router as root_health_router
+from backend.app.api.v1.centre_locator import router as centre_locator_router
 from backend.app.api.v1.router import api_v1_router
 from backend.app.config import settings
 from backend.app.core.errors import register_error_handlers
@@ -76,6 +77,9 @@ def create_app() -> FastAPI:
 
     # Mount versioned API routes
     app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
+
+    # Mount Centre Locator proxy routes (/api/geocode, /api/centres)
+    app.include_router(centre_locator_router)
 
     return app
 

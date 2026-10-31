@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.core.envelope import success_response
 from backend.app.db.session import get_db
-from backend.app.eligibility.questions import get_all_questions
+from backend.app.eligibility.questions import get_all_questions, get_categories
 from backend.app.eligibility.service import eligibility_service
 
 router = APIRouter(prefix="/eligibility", tags=["Deterministic Eligibility & Ranking"])
@@ -66,9 +66,11 @@ async def get_questionnaire_schema(request: Request):
     """Returns bilingual questionnaire schema mapping citizen profile fields."""
     request_id = getattr(request.state, "request_id", "direct")
     questions = get_all_questions()
+    categories = get_categories()
     return success_response(
         data={
             "total_questions": len(questions),
+            "categories": categories,
             "questions": questions
         },
         request_id=request_id

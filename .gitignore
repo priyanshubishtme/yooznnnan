@@ -75,3 +75,10 @@ data/*.pid
 *.swo
 .DS_Store
 Thumbs.db
+
+# Scratch and temporary prompt files
+scratch_*
+step978_prompt.txt
+pdf/
+Yojna/
+yogana_chat_ui/

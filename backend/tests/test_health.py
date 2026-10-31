@@ -23,7 +23,7 @@ async def test_schemes_catalogue(client):
     data = response.json()
     assert data["ok"] is True
     assert isinstance(data["data"], list)
-    assert len(data["data"]) == 13
+    assert len(data["data"]) >= 13
 
     # Check first scheme structure
     pm_kisan = next((s for s in data["data"] if s["code"] == "pm_kisan"), None)

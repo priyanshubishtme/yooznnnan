@@ -102,21 +102,49 @@ export const CitizenLayout: React.FC = () => {
           <div
             style={{
               marginTop: 'auto',
-              padding: '1rem',
+              padding: '0.85rem 1rem',
               borderRadius: 'var(--radius-md)',
-              background: 'var(--accent-saffron-light)',
-              border: '1px solid rgba(245, 158, 11, 0.25)',
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-subtle)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.5rem'
+              gap: '0.4rem'
             }}
           >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-saffron)' }}>
-              100% On-Device Privacy
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                {t('dashboard.completeness')}
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                {localStorage.getItem('yojana_citizen_profile') ? `${JSON.parse(localStorage.getItem('yojana_citizen_profile') || '{}').profile_completeness_pct || 85}%` : '85%'}
+              </span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              Your profile data remains in your browser's IndexedDB.
+            <div style={{ height: '4px', background: 'var(--border-subtle)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${localStorage.getItem('yojana_citizen_profile') ? JSON.parse(localStorage.getItem('yojana_citizen_profile') || '{}').profile_completeness_pct || 85 : 85}%`,
+                  background: 'linear-gradient(90deg, var(--accent-primary), #059669)',
+                  borderRadius: '2px'
+                }}
+              />
             </div>
+            <Link
+              to="/app/profile"
+              style={{
+                fontSize: '0.72rem',
+                color: 'var(--accent-primary)',
+                fontWeight: 600,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '4px'
+              }}
+            >
+              <span>{t('profile.title').split(' ')[0]} {t('btn.next')}</span>
+              <ArrowRight size={11} />
+            </Link>
           </div>
         </aside>
 

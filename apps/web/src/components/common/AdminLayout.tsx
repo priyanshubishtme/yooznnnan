@@ -39,7 +39,7 @@ export const AdminLayout: React.FC = () => {
     { path: '/admin/documents', label: t('admin.nav.documents'), icon: FileText },
     { path: '/admin/rules', label: t('admin.nav.rules'), icon: Scale },
     { path: '/admin/audit', label: t('admin.nav.audit'), icon: History },
-    { path: '/admin/freshness', label: 'Freshness & Analytics', icon: BarChart3 }
+    { path: '/admin/freshness', label: t('admin.nav.freshness'), icon: BarChart3 }
   ];
 
   const isActive = (path: string, exact: boolean = false) => {

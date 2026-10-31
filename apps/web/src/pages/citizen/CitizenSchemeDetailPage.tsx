@@ -28,26 +28,7 @@ import { SchemeItem } from '../../types';
 import { LoadingSkeleton, ErrorState } from '../../components/common/StateViews';
 import { PdfEvidenceViewerModal } from '../../components/PdfEvidenceViewerModal';
 
-interface SchemeDetailData extends SchemeItem {
-  verified_documents?: Array<{
-    document_id: string;
-    title: string;
-    document_type: string;
-    version_id: string;
-    version_number: number;
-    content_type: string;
-    binary_sha256: string;
-  }>;
-  active_rules?: Array<{
-    id: string;
-    rule_code: string;
-    version: number;
-    logic_expression: string;
-    evidence_quote: string;
-    page_reference: number;
-    document_version_id?: string;
-  }>;
-}
+type SchemeDetailData = SchemeItem;
 
 export const CitizenSchemeDetailPage: React.FC = () => {
   const { schemeId } = useParams<{ schemeId: string }>();

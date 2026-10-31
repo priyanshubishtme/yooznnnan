@@ -71,6 +71,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
   const [showCoordinates, setShowCoordinates] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'highlighted' | 'pdf'>('highlighted');
 
   useEffect(() => {
     const fetchPageEvidence = async () => {
@@ -180,6 +181,56 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
 
           {/* Controls: Zoom, Coordinate toggle, and Close */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            {/* View Mode Toggle: Highlighted Page vs Raw PDF Stream */}
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', padding: '2px' }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('highlighted')}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-xs)',
+                  border: 'none',
+                  background: viewMode === 'highlighted' ? 'var(--accent-primary)' : 'transparent',
+                  color: viewMode === 'highlighted' ? '#ffffff' : 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                {language === 'hi' ? 'साक्ष्य हाइलाइट' : 'Highlights'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('pdf')}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-xs)',
+                  border: 'none',
+                  background: viewMode === 'pdf' ? 'var(--accent-primary)' : 'transparent',
+                  color: viewMode === 'pdf' ? '#ffffff' : 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                {language === 'hi' ? 'मूल पीडीएफ' : 'Raw PDF'}
+              </button>
+            </div>
+
+            {/* Direct Download Official PDF */}
+            <a
+              href={`http://127.0.0.1:8005/api/v1/evidence/${versionId}/pdf`}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', padding: '0.35rem 0.6rem' }}
+              title="Download Official Government PDF"
+            >
+              <Download size={13} />
+              <span>PDF</span>
+            </a>
+
             {/* Toggle Coordinate Panel */}
             <button
               onClick={() => setShowCoordinates(!showCoordinates)}
@@ -265,13 +316,24 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
               flex: 1,
               overflow: 'auto',
               display: 'flex',
-              alignItems: 'flex-start',
+              alignItems: viewMode === 'pdf' ? 'stretch' : 'flex-start',
               justifyContent: 'center',
-              padding: '1.5rem',
-              background: 'var(--bg-app)'
+              padding: viewMode === 'pdf' ? 0 : '1.5rem',
+              background: viewMode === 'pdf' ? '#525659' : 'var(--bg-app)'
             }}
           >
-            {isLoading ? (
+            {viewMode === 'pdf' ? (
+              <iframe
+                src={`http://127.0.0.1:8005/api/v1/evidence/${versionId}/pdf#page=${currentPage}&zoom=${Math.round(zoomLevel * 100)}`}
+                title="Official Government PDF Viewer"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block'
+                }}
+              />
+            ) : isLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginTop: '20vh' }}>
                 <RefreshCw size={28} className="animate-spin" style={{ color: 'var(--accent-primary)' }} />
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
@@ -301,12 +363,24 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
                     height: 'auto',
                     userSelect: 'none'
                   }}
+                  onError={() => {
+                    setViewMode('pdf');
+                  }}
                 />
               </div>
             ) : (
-              <div style={{ textAlign: 'center', marginTop: '20vh', color: 'var(--accent-danger)' }}>
-                <Info size={32} style={{ marginBottom: '0.5rem' }} />
-                <div>Failed to render page evidence.</div>
+              <div style={{ textAlign: 'center', marginTop: '20vh', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <Info size={32} style={{ color: 'var(--accent-saffron)' }} />
+                <div>Official PDF rendered page is loading or available via PDF Stream.</div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button onClick={() => setViewMode('pdf')} className="btn btn-primary btn-sm">
+                    Switch to Raw PDF View
+                  </button>
+                  <a href={`http://127.0.0.1:8005/api/v1/evidence/${versionId}/pdf`} download className="btn btn-secondary btn-sm">
+                    <Download size={13} />
+                    Download PDF
+                  </a>
+                </div>
               </div>
             )}
           </div>

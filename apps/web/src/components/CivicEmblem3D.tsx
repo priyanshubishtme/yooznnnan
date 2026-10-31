@@ -86,44 +86,6 @@ export const CivicEmblem3D: React.FC<CivicEmblem3DProps> = ({
       emblemGroup.add(spoke);
     }
 
-    // Orbiting Particles (Saffron, White, Emerald)
-    const particleCount = 120;
-    const particleGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-
-    const colorSaffron = new THREE.Color(0xf59e0b);
-    const colorWhite = new THREE.Color(0xffffff);
-    const colorEmerald = new THREE.Color(0x10b981);
-
-    for (let i = 0; i < particleCount; i++) {
-      const r = 2.4 + Math.random() * 1.5;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = (Math.random() - 0.5) * Math.PI * 0.8;
-
-      positions[i * 3] = r * Math.cos(theta) * Math.cos(phi);
-      positions[i * 3 + 1] = r * Math.sin(theta) * Math.cos(phi);
-      positions[i * 3 + 2] = r * Math.sin(phi);
-
-      const chosenColor = i % 3 === 0 ? colorSaffron : i % 3 === 1 ? colorWhite : colorEmerald;
-      colors[i * 3] = chosenColor.r;
-      colors[i * 3 + 1] = chosenColor.g;
-      colors[i * 3 + 2] = chosenColor.b;
-    }
-
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const particleMat = new THREE.PointsMaterial({
-      size: 0.08,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.85
-    });
-
-    const particles = new THREE.Points(particleGeo, particleMat);
-    emblemGroup.add(particles);
-
     // 4. Mouse Interaction
     let mouseX = 0;
     let mouseY = 0;
@@ -151,7 +113,6 @@ export const CivicEmblem3D: React.FC<CivicEmblem3DProps> = ({
       // Smooth continuous rotation
       emblemGroup.rotation.y = elapsedTime * 0.35;
       emblemGroup.rotation.x = Math.sin(elapsedTime * 0.25) * 0.2;
-      particles.rotation.y = -elapsedTime * 0.15;
 
       // Gentle mouse tracking
       if (interactive) {

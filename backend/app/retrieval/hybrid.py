@@ -158,6 +158,61 @@ class HybridRetriever:
 
         return scores
 
+    def _expand_bilingual_query(self, query: str) -> str:
+        """Expands Hindi or code-mixed Hinglish queries with English domain terms from official gazettes."""
+        expansions = [
+            # PM-KISAN
+            ("पीएम-किसान", "PM-KISAN farmer installment 6000"),
+            ("पीएम किसान", "PM-KISAN farmer installment 6000"),
+            ("किसान", "farmer agricultural landholding"),
+            ("प्रत्येक किस्त", "installment Rs 2000 2,000 equal installments four-monthly"),
+            ("किस्त", "installment 2000 four months release equal installments"),
+            ("कितने रुपये", "amount Rs"),
+            ("सालाना", "annual per year Rs 6000 financial benefit"),
+            ("सहायता राशि", "financial benefit assistance amount Rs 6000"),
+            ("सहायता", "financial benefit assistance"),
+            ("आयकर", "income tax payee exclusion ineligible"),
+            ("आधार", "Aadhaar mandatory seeded authentication"),
+            # PMAY-G
+            ("प्रधानमंत्री आवास", "PMAY-G Pradhan Mantri Awaas Yojana Gramin housing"),
+            ("पीएम आवास", "PMAY-G Pradhan Mantri Awaas Yojana Gramin housing"),
+            ("पीएमएवाई-जी", "PMAY-G Pradhan Mantri Awaas Yojana Gramin"),
+            ("मैदानी", "plain areas 120000 1.20 lakh unit assistance"),
+            ("पहाड़ी", "hilly difficult areas Himalayan 130000 1.30 lakh unit assistance"),
+            ("दुर्गम", "difficult areas hilly states 130000"),
+            ("शौचालय", "toilet construction SBM Swachh Bharat Mission 12000"),
+            ("स्वच्छ भारत", "Swachh Bharat Mission SBM 12000 toilet"),
+            ("मकान", "house construction unit assistance"),
+            ("अकुशल श्रम", "MGNREGS unskilled labour 90 95 person days"),
+            ("मनरेगा", "MGNREGS unskilled labour person days"),
+            # Ayushman Bharat / PM-JAY
+            ("आयुष्मान भारत", "Ayushman Bharat PM-JAY PMJAY health cover 5 lakh"),
+            ("आयुष्मान", "Ayushman Bharat PM-JAY PMJAY health cover"),
+            ("इलाज", "treatment hospitalization cover cashless 5 lakh"),
+            ("मुफ्त इलाज", "cashless treatment health cover 5 lakh per family per annum"),
+            ("प्रति परिवार", "per family per annum 5 lakh cover"),
+            ("राज्य", "portability nationwide states empaneled hospital"),
+            ("वरिष्ठ नागरिक", "senior citizen 70 years and above top up 5 lakh"),
+            ("70 वर्ष", "senior citizen 70 years and above top up 5 lakh"),
+            # Uttarakhand Old Age Pension
+            ("उत्तराखंड", "Uttarakhand state domicile"),
+            ("वृद्धावस्था", "old age pension 60 years monthly 1500"),
+            ("पेंशन", "pension amount monthly 1500 per month"),
+            ("न्यूनतम आयु", "minimum age 60 years eligibility"),
+            # Scholarships / CSSS
+            ("छात्रवृत्ति", "scholarship Central Sector Scheme CSSS higher education"),
+            ("उच्च शिक्षा", "higher education college university scholarship"),
+            ("वार्षिक आय सीमा", "annual parental income ceiling 4.5 lakh"),
+            ("आय सीमा", "income ceiling 4.5 lakh"),
+        ]
+
+        expanded = query
+        lower_q = query.lower()
+        for term, syn in expansions:
+            if term in lower_q:
+                expanded += f" {syn}"
+        return expanded
+
     async def search(
         self,
         db: AsyncSession,
@@ -209,8 +264,11 @@ class HybridRetriever:
                 "scheme_id": s_id
             })
 
+        # Expand bilingual / cross-lingual terms for dual indexing
+        search_query = self._expand_bilingual_query(query)
+
         # 1. Dense Vector Scoring
-        query_vec = self._embed_text(query)
+        query_vec = self._embed_text(search_query)
         dense_scores = []
         for item in chunks_data:
             chunk_vec = self._embed_text(item["chunk"].text)
@@ -222,7 +280,7 @@ class HybridRetriever:
         dense_rank_map = {idx: rank + 1 for rank, idx in enumerate(dense_ranked_indices)}
 
         # 2. Sparse BM25 Keyword Scoring
-        query_tokens = self._tokenize(query)
+        query_tokens = self._tokenize(search_query)
         chunk_texts = [item["chunk"].text for item in chunks_data]
         sparse_scores = self._compute_bm25_scores(query_tokens, chunk_texts)
 

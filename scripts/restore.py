@@ -99,3 +99,4 @@ if __name__ == "__main__":
         target = backups[-1]
 
     restore_backup(target)
+

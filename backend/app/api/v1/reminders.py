@@ -222,3 +222,116 @@ async def get_my_subscriptions(
     ]
 
     return success_response(data=items, request_id=request_id)
+
+
+# Citizen In-App & Email Custom Reminders & Notifications
+
+class CitizenCustomReminderCreate(BaseModel):
+    title: str = Field(..., min_length=2, description="Reminder title")
+    scheme_id: Optional[str] = Field(None, description="Related welfare scheme ID")
+    scheme_name: Optional[str] = Field(None, description="Related welfare scheme name")
+    description: Optional[str] = Field("", description="Next action / description")
+    due_date: str = Field(..., description="Target due date (YYYY-MM-DD)")
+    due_time: Optional[str] = Field("10:00", description="Target due time (HH:MM)")
+    channel: str = Field("both", description="Notification channel: 'in_app' | 'email' | 'both'")
+    email: Optional[str] = Field(None, description="Recipient email address")
+    recipient_name: Optional[str] = Field("Citizen", description="Citizen name")
+    reminder_type: str = Field("deadline", description="Type: deadline | document_collection | submission | follow_up | general")
+    language: str = Field("en", description="Notification language ('hi' | 'en')")
+
+
+# In-memory storage for custom citizen reminders & notifications
+CITIZEN_REMINDERS_REGISTRY: List[Dict[str, Any]] = []
+
+
+@router.post("/citizen/create", status_code=status.HTTP_201_CREATED)
+async def create_citizen_custom_reminder(
+    payload: CitizenCustomReminderCreate,
+    request: Request
+):
+    """Creates a citizen reminder and dispatches email if requested."""
+    from backend.app.notifications.email_service import email_service
+    request_id = getattr(request.state, "request_id", "direct")
+
+    reminder_id = f"crm-{uuid.uuid4().hex[:10]}"
+    delivery_status = "scheduled"
+    delivery_message = "In-app reminder scheduled."
+
+    if payload.channel in ("email", "both") and payload.email:
+        result = await email_service.dispatch_reminder(
+            recipient_email=payload.email,
+            recipient_name=payload.recipient_name or "Citizen",
+            title=payload.title,
+            scheme_name=payload.scheme_name or "Government Welfare Scheme",
+            due_date=payload.due_date,
+            due_time=payload.due_time or "10:00",
+            description=payload.description or "",
+            language=payload.language or "en"
+        )
+        delivery_status = result.status
+        delivery_message = result.message
+
+    record = {
+        "id": reminder_id,
+        "title": payload.title,
+        "scheme_id": payload.scheme_id,
+        "scheme_name": payload.scheme_name or "Government Welfare Scheme",
+        "description": payload.description,
+        "due_date": payload.due_date,
+        "due_time": payload.due_time or "10:00",
+        "channel": payload.channel,
+        "email": payload.email,
+        "recipient_name": payload.recipient_name,
+        "reminder_type": payload.reminder_type,
+        "status": delivery_status,
+        "delivery_message": delivery_message,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    CITIZEN_REMINDERS_REGISTRY.append(record)
+
+    return success_response(data=record, request_id=request_id)
+
+
+@router.get("/citizen/list")
+async def list_citizen_reminders(
+    email: Optional[str] = None,
+    request: Request = None
+):
+    """Lists scheduled citizen reminders and notification centre items."""
+    request_id = getattr(request.state, "request_id", "direct") if request else "direct"
+    if email:
+        items = [r for r in CITIZEN_REMINDERS_REGISTRY if r.get("email") == email]
+    else:
+        items = CITIZEN_REMINDERS_REGISTRY
+    return success_response(data=items, request_id=request_id)
+
+
+@router.patch("/citizen/{reminder_id}/read")
+async def mark_citizen_reminder_read(
+    reminder_id: str,
+    request: Request
+):
+    """Marks a citizen notification as read."""
+    request_id = getattr(request.state, "request_id", "direct")
+    for r in CITIZEN_REMINDERS_REGISTRY:
+        if r["id"] == reminder_id:
+            r["is_read"] = True
+            return success_response(data=r, request_id=request_id)
+    raise HTTPException(status_code=404, detail="Reminder not found.")
+
+
+@router.delete("/citizen/{reminder_id}")
+async def delete_citizen_reminder(
+    reminder_id: str,
+    request: Request
+):
+    """Deletes a citizen reminder."""
+    global CITIZEN_REMINDERS_REGISTRY
+    request_id = getattr(request.state, "request_id", "direct")
+    initial_len = len(CITIZEN_REMINDERS_REGISTRY)
+    CITIZEN_REMINDERS_REGISTRY = [r for r in CITIZEN_REMINDERS_REGISTRY if r["id"] != reminder_id]
+    if len(CITIZEN_REMINDERS_REGISTRY) == initial_len:
+        raise HTTPException(status_code=404, detail="Reminder not found.")
+    return success_response(data={"deleted": True, "id": reminder_id}, request_id=request_id)
+

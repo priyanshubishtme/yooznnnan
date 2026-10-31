@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Deterministic Recommendations Result Screen with 4 Status Tiers & Multi-Factor Ranking
  *
  * Enforces Blueprint Section 10.3 & Phase 7 Gate:
@@ -67,15 +67,36 @@ export const RecommendationsPage: React.FC = () => {
         }
       }
 
-      // Re-evaluate using saved profile answers
+      // Re-evaluate using saved profile answers or unified citizen profile
       const savedAnswers = localStorage.getItem('yojana_profile_answers');
-      const profile = savedAnswers ? JSON.parse(savedAnswers) : {};
+      const citizenProfile = localStorage.getItem('yojana_citizen_profile');
+      let profilePayload: any = {};
+
+      if (citizenProfile) {
+        const cp = JSON.parse(citizenProfile);
+        profilePayload = {
+          age: cp.age,
+          state: cp.state,
+          district: cp.district,
+          occupation: cp.occupation,
+          annual_income: cp.annual_family_income || 180000,
+          annual_income_band: cp.annual_income_band,
+          gender: cp.gender,
+          social_category: cp.social_category,
+          is_differently_abled: cp.is_differently_abled,
+          land_ownership: cp.land_ownership,
+          landholding_acres: cp.landholding_acres,
+          education_level: cp.education_level
+        };
+      } else if (savedAnswers) {
+        profilePayload = JSON.parse(savedAnswers);
+      }
 
       try {
         const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/evaluate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile })
+          body: JSON.stringify({ profile: profilePayload })
         });
         if (resp.ok) {
           const json = await resp.json();

@@ -1,35 +1,67 @@
-﻿/**
- * Guided Eligibility Questionnaire with Dynamic Backend Questions,
- * Progressive Disclosure, and "Not Sure" Support
+/**
+ * Yojana Sahayak — Complete 7-Category Progressive Eligibility Questionnaire
  *
- * Enforces Blueprint Section 10.1 & Phase 7:
- * - Dynamic questionnaire populated from verified schema.
- * - Explicit "Not Sure" / "Skip" states triggering 3-valued UNKNOWN.
- * - Bilingual labels and guidance tooltips.
- * - Direct submission to deterministic evaluation engine.
+ * Implements Priority 1 & GovTech Blueprint:
+ * 1. 7 Progressive Categories:
+ *    - Step 1: Personal Information
+ *    - Step 2: Residential Information
+ *    - Step 3: Financial Information
+ *    - Step 4: Employment & Occupation
+ *    - Step 5: Agricultural Information
+ *    - Step 6: Education & Academics
+ *    - Step 7: Documents & Identification
+ *    - Step 8: Review & Edit Summary
+ * 2. Visual Stepper UX with step indicator, progress %, and direct jump.
+ * 3. Conditional field visibility (farmer, disability, student).
+ * 4. Skip / "Not sure right now" (Kleene 3-valued UNKNOWN logic).
+ * 5. Server-Side Persistence: Prefills from database, Save & Resume anywhere,
+ *    and deterministic server-side evaluation with 4-tier output.
+ * 6. Full Dark Mode & Bilingual Hindi/English Localization.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  User,
+  Home,
+  Landmark,
+  Briefcase,
+  Sprout,
+  GraduationCap,
+  FileCheck2,
   CheckCircle2,
-  HelpCircle,
   ArrowRight,
   ArrowLeft,
-  ShieldCheck,
+  Save,
+  RotateCcw,
   Sparkles,
+  ShieldCheck,
+  HelpCircle,
   Info,
+  Edit3,
+  Check,
+  AlertCircle,
   RefreshCw,
-  Layers,
-  Check
+  SlidersHorizontal,
+  ChevronRight
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+
+interface CategoryMeta {
+  id: string;
+  step: number;
+  title_en: string;
+  title_hi: string;
+  desc_en: string;
+  desc_hi: string;
+  icon: React.ElementType;
+}
 
 interface QuestionItem {
   id: string;
   field: string;
   category: string;
-  type: 'boolean' | 'number' | 'select';
+  type: 'boolean' | 'number' | 'select' | 'text';
   label_en: string;
   label_hi: string;
   placeholder_en?: string;
@@ -44,102 +76,211 @@ interface QuestionItem {
   depends_on?: { field: string; value: any };
 }
 
+const CATEGORY_DEFINITIONS: CategoryMeta[] = [
+  {
+    id: 'personal',
+    step: 1,
+    title_en: 'Personal Information',
+    title_hi: 'व्यक्तिगत जानकारी',
+    desc_en: 'Age, gender, social category and personal profile attributes.',
+    desc_hi: 'आयु, लिंग, सामाजिक श्रेणी और व्यक्तिगत विवरण।',
+    icon: User
+  },
+  {
+    id: 'residential',
+    step: 2,
+    title_en: 'Residential Information',
+    title_hi: 'निवास संबंधी जानकारी',
+    desc_en: 'Permanent state domicile, district, and rural/urban classification.',
+    desc_hi: 'स्थायी निवास राज्य, जिला एवं ग्रामीण/शहरी क्षेत्र।',
+    icon: Home
+  },
+  {
+    id: 'financial',
+    step: 3,
+    title_en: 'Financial Information',
+    title_hi: 'वित्तीय जानकारी',
+    desc_en: 'Annual family income, BPL status, and tax payer declarations.',
+    desc_hi: 'पारिवारिक वार्षिक आय, बीपीएल राशन कार्ड और आयकर स्थिति।',
+    icon: Landmark
+  },
+  {
+    id: 'employment',
+    step: 4,
+    title_en: 'Employment & Occupation',
+    title_hi: 'रोजगार और व्यवसाय',
+    desc_en: 'Work category, primary trade, and unorganized labor status.',
+    desc_hi: 'रोजगार का प्रकार, प्रमुख पेशा और असंगठित श्रमिक स्थिति।',
+    icon: Briefcase
+  },
+  {
+    id: 'agricultural',
+    step: 5,
+    title_en: 'Agricultural Information',
+    title_hi: 'कृषि संबंधी जानकारी',
+    desc_en: 'Cultivable farmland ownership, landholding size, and land tenure.',
+    desc_hi: 'कृषि भूमि स्वामित्व, जोत का आकार और काश्तकारी प्रकार।',
+    icon: Sprout
+  },
+  {
+    id: 'education',
+    step: 6,
+    title_en: 'Education & Academics',
+    title_hi: 'शिक्षा और अकादमिक जानकारी',
+    desc_en: 'Highest qualification, student enrollment, and board percentiles.',
+    desc_hi: 'उच्चतम शैक्षणिक योग्यता, वर्तमान नामांकन और मेरिट प्रतिशत।',
+    icon: GraduationCap
+  },
+  {
+    id: 'documents',
+    step: 7,
+    title_en: 'Documents & Identification',
+    title_hi: 'दस्तावेज और पहचान',
+    desc_en: 'Aadhaar DBT linking, Jan Dhan account, and certified documents.',
+    desc_hi: 'आधार डीबीटी लिंकिंग, जन धन खाता और प्रमाणित दस्तावेज।',
+    icon: FileCheck2
+  }
+];
+
 export const EligibilityQuestionnairePage: React.FC = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const isHindi = language === 'hi';
 
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
-  const [currentIdx, setCurrentIdx] = useState<number>(0);
-  const [answers, setAnswers] = useState<Record<string, any>>(() => {
-    const saved = localStorage.getItem('yojana_profile_answers');
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [customNumInput, setCustomNumInput] = useState<string>('');
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
-  // Fetch standardized questions from backend
+  // Load questions schema & prefill answers from database
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const initializeData = async () => {
+      setIsLoading(true);
       try {
-        const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/questions');
-        if (resp.ok) {
-          const json = await resp.json();
-          setQuestions(json.data.questions || []);
+        // 1. Fetch Question Catalog
+        const qResp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/questions');
+        if (qResp.ok) {
+          const qJson = await qResp.json();
+          setQuestions(qJson.data.questions || []);
+        }
+
+        // 2. Load In-Progress or Existing Profile Data from Server
+        const loadResp = await fetch('http://127.0.0.1:8005/api/v1/citizen/assessment/load');
+        if (loadResp.ok) {
+          const loadJson = await loadResp.json();
+          const savedAnswers = loadJson.data.answers || {};
+          setAnswers(savedAnswers);
+          if (loadJson.data.current_step && loadJson.data.current_step >= 1 && loadJson.data.current_step <= 7) {
+            setCurrentStep(loadJson.data.current_step);
+          }
         }
       } catch (err) {
-        console.error('Failed to load questionnaire questions:', err);
+        console.error('Failed to load questionnaire data from backend:', err);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchQuestions();
+
+    initializeData();
   }, []);
 
-  // Filter questions based on conditional dependencies
-  const visibleQuestions = questions.filter(q => {
-    if (!q.depends_on) return true;
-    return answers[q.depends_on.field] === q.depends_on.value;
-  });
+  // Filter current category questions and conditional visibility
+  const currentCategory = CATEGORY_DEFINITIONS[currentStep - 1];
 
-  const currentQ = visibleQuestions[currentIdx];
-  const progressPercent = visibleQuestions.length > 0
-    ? Math.round(((currentIdx + 1) / visibleQuestions.length) * 100)
-    : 0;
+  const visibleCategoryQuestions = useMemo(() => {
+    if (!currentCategory) return [];
+    return questions.filter(q => {
+      if (q.category !== currentCategory.id) return false;
+      if (!q.depends_on) return true;
+      return answers[q.depends_on.field] === q.depends_on.value;
+    });
+  }, [questions, currentCategory, answers]);
 
-  const handleSelectAnswer = (value: any) => {
-    if (!currentQ) return;
-    const updated = { ...answers, [currentQ.field]: value };
-    setAnswers(updated);
-    localStorage.setItem('yojana_profile_answers', JSON.stringify(updated));
-    setCustomNumInput('');
+  // Overall progress percentage across all 7 categories
+  const progressPercent = Math.min(100, Math.round(((currentStep - 1) / 7) * 100));
 
-    if (currentIdx < visibleQuestions.length - 1) {
-      setCurrentIdx(currentIdx + 1);
-    }
+  // Handle single question input change
+  const handleInputChange = (field: string, value: any) => {
+    setAnswers(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNotSure = () => {
-    if (!currentQ) return;
-    const updated = { ...answers, [currentQ.field]: 'not_sure' };
-    setAnswers(updated);
-    localStorage.setItem('yojana_profile_answers', JSON.stringify(updated));
-    setCustomNumInput('');
-
-    if (currentIdx < visibleQuestions.length - 1) {
-      setCurrentIdx(currentIdx + 1);
-    }
+  // Handle Skip / "Not sure right now"
+  const handleNotSure = (field: string) => {
+    setAnswers(prev => ({ ...prev, [field]: 'not_sure' }));
   };
 
-  const handleSubmitEvaluation = async () => {
-    setIsSubmitting(true);
+  // Server-side Save & Resume
+  const handleSaveProgress = async () => {
+    setIsSaving(true);
+    setSaveToast(null);
     try {
-      // Clean answers: map numbers
-      const cleanProfile: Record<string, any> = {};
-      for (const [k, v] of Object.entries(answers)) {
-        if (v === 'not_sure') {
-          cleanProfile[k] = null;
-        } else {
-          cleanProfile[k] = v;
-        }
-      }
-
-      const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/evaluate', {
+      const resp = await fetch('http://127.0.0.1:8005/api/v1/citizen/assessment/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: cleanProfile })
+        body: JSON.stringify({
+          user_identifier: 'citizen-default',
+          current_step: currentStep,
+          answers: answers
+        })
+      });
+
+      if (resp.ok) {
+        setSaveToast(isHindi ? 'प्रगति सर्वर डेटाबेस में सुरक्षित सहेजी गई!' : 'Progress successfully saved to database!');
+        setTimeout(() => setSaveToast(null), 4000);
+      } else {
+        setSaveToast(isHindi ? 'सहेजने में त्रुटि आई।' : 'Failed to save progress.');
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      setSaveToast(isHindi ? 'सहेजने में नेटवर्क त्रुटि।' : 'Network error while saving.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Step Navigation Handlers
+  const handleNextStep = () => {
+    if (currentStep < 8) {
+      setCurrentStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Final Evaluation Submission to Server
+  const handleSubmitAssessment = async () => {
+    setIsSubmitting(true);
+    try {
+      const resp = await fetch('http://127.0.0.1:8005/api/v1/citizen/assessment/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_identifier: 'citizen-default',
+          answers: answers
+        })
       });
 
       if (resp.ok) {
         const json = await resp.json();
+        // Cache evaluation results locally for instant access and navigate
         localStorage.setItem('yojana_evaluation_results', JSON.stringify(json.data));
         navigate('/app/recommendations');
       } else {
-        alert('Evaluation service error. Please try again.');
+        alert(isHindi ? 'मूल्यांकन सेवा में त्रुटि आई। कृपया पुनः प्रयास करें।' : 'Evaluation service error. Please try again.');
       }
     } catch (err) {
-      console.error('Evaluation submit error:', err);
-      alert('Network error connecting to evaluation service.');
+      console.error('Assessment submit error:', err);
+      alert(isHindi ? 'नेटवर्क त्रुटि: मूल्यांकन सर्वर से कनेक्ट नहीं हो सका।' : 'Network error connecting to evaluation service.');
     } finally {
       setIsSubmitting(false);
     }
@@ -147,367 +288,478 @@ export const EligibilityQuestionnairePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '1rem' }}>
-        <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--accent-primary)' }} />
-        <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          {language === 'hi' ? 'सत्यापित प्रश्नावली लोड हो रही है...' : 'Loading verified questionnaire...'}
-        </span>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
+        <div className="w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+          {isHindi ? '7-चरणीय सत्यापित पात्रता प्रश्नावली लोड हो रही है...' : 'Loading 7-Step Verified Eligibility Questionnaire...'}
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+          {isHindi ? 'सर्वर से आधिकारिक प्रश्न और पूर्व-भरी प्रोफाइल सिंक्रनाइज़ की जा रही है...' : 'Syncing official schema & existing citizen profile from database...'}
+        </p>
       </div>
     );
   }
 
-  const isLastQuestion = currentIdx >= visibleQuestions.length - 1;
-
   return (
-    <div style={{ maxWidth: '780px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem 0' }}>
-      {/* Questionnaire Card Header */}
-      <div className="glass-card" style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span className="badge badge-emerald">
-              <ShieldCheck size={14} />
-              100% Deterministic Python Logic
-            </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              {language === 'hi' ? 'शून्य मतिभ्रम (Zero Hallucination)' : 'Zero Hallucination Guaranteed'}
-            </span>
-          </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto space-y-6">
 
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-            {language === 'hi' ? `प्रश्न ${currentIdx + 1} / ${visibleQuestions.length}` : `Question ${currentIdx + 1} of ${visibleQuestions.length}`}
-          </span>
-        </div>
+        {/* ------------------------------------------------------------- */}
+        {/* HEADER & SAVED STATUS BANNER */}
+        {/* ------------------------------------------------------------- */}
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 text-xs font-bold uppercase rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  {isHindi ? 'प्राधिकृत पात्रता इंजन V2' : 'Deterministic Rules Engine V2'}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  {isHindi ? '100% सटीक कानूनी नियम' : '100% Deterministic Kleene Logic'}
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                {isHindi ? 'सरकारी योजना पात्रता निर्धारण' : 'Government Scheme Eligibility Assessment'}
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                {isHindi
+                  ? '7 चरणों में अपने विवरण दर्ज करें। हमारा सिस्टम बिना किसी पूर्वाग्रह के आपकी सटीक पात्रता जांचेगा।'
+                  : 'Complete 7 progressive categories to receive fully verified, ranked welfare recommendations.'}
+              </p>
+            </div>
 
-        {/* Progress Bar */}
-        <div style={{ width: '100%', height: '6px', background: 'var(--bg-app)', borderRadius: '3px', overflow: 'hidden' }}>
-          <div
-            style={{
-              width: `${progressPercent}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-saffron))',
-              transition: 'width 0.3s ease'
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Main Question Card */}
-      {currentQ && (
-        <div
-          className="glass-card"
-          style={{
-            padding: '2rem',
-            borderRadius: 'var(--radius-lg)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem',
-            boxShadow: 'var(--shadow-md)'
-          }}
-        >
-          {/* Category Tag */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                textTransform: 'uppercase',
-                fontWeight: 700,
-                letterSpacing: '0.05em',
-                color: 'var(--accent-saffron)',
-                background: 'rgba(245, 158, 11, 0.1)',
-                padding: '0.2rem 0.6rem',
-                borderRadius: 'var(--radius-sm)'
-              }}
-            >
-              {currentQ.category}
-            </span>
-
-            {currentQ.official_verification_required && (
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  color: 'var(--accent-primary)',
-                  background: 'var(--accent-primary-light)',
-                  padding: '0.2rem 0.5rem',
-                  borderRadius: 'var(--radius-sm)'
-                }}
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              <button
+                type="button"
+                onClick={handleSaveProgress}
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border-2 border-slate-900 dark:border-slate-700 bg-amber-50 dark:bg-slate-800 text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
               >
-                External Verification Required
-              </span>
-            )}
+                {isSaving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                {isHindi ? 'सहेजें व बाद में करें' : 'Save & Resume'}
+              </button>
+            </div>
           </div>
 
-          {/* Question Title */}
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-            {language === 'hi' ? currentQ.label_hi : currentQ.label_en}
-          </h2>
-
-          {/* Tooltip / Guidance */}
-          {(currentQ.tooltip_en || currentQ.tooltip_hi) && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '0.6rem',
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                fontSize: '0.85rem',
-                color: 'var(--text-secondary)'
-              }}
-            >
-              <Info size={16} style={{ color: 'var(--accent-saffron)', flexShrink: 0, marginTop: '2px' }} />
-              <span>{language === 'hi' ? currentQ.tooltip_hi : currentQ.tooltip_en}</span>
+          {/* Toast Notification */}
+          {saveToast && (
+            <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-lg text-emerald-900 dark:text-emerald-200 text-sm flex items-center gap-2 animate-fadeIn">
+              <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+              <span>{saveToast}</span>
             </div>
           )}
+        </div>
 
-          {/* Input Controls */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
-            {/* Boolean Yes / No */}
-            {currentQ.type === 'boolean' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <button
-                  type="button"
-                  onClick={() => handleSelectAnswer(true)}
-                  className="btn"
-                  style={{
-                    padding: '1.1rem',
-                    fontSize: '1.05rem',
-                    fontWeight: 700,
-                    borderRadius: 'var(--radius-md)',
-                    background: answers[currentQ.field] === true ? 'var(--accent-primary)' : 'var(--bg-app)',
-                    color: answers[currentQ.field] === true ? '#ffffff' : 'var(--text-primary)',
-                    border: `2px solid ${answers[currentQ.field] === true ? 'var(--accent-primary)' : 'var(--border-normal)'}`,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  {answers[currentQ.field] === true && <Check size={18} />}
-                  <span>{language === 'hi' ? 'हाँ (Yes)' : 'Yes'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectAnswer(false)}
-                  className="btn"
-                  style={{
-                    padding: '1.1rem',
-                    fontSize: '1.05rem',
-                    fontWeight: 700,
-                    borderRadius: 'var(--radius-md)',
-                    background: answers[currentQ.field] === false ? 'var(--accent-primary)' : 'var(--bg-app)',
-                    color: answers[currentQ.field] === false ? '#ffffff' : 'var(--text-primary)',
-                    border: `2px solid ${answers[currentQ.field] === false ? 'var(--accent-primary)' : 'var(--border-normal)'}`,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  {answers[currentQ.field] === false && <Check size={18} />}
-                  <span>{language === 'hi' ? 'नहीं (No)' : 'No'}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Select Options */}
-            {currentQ.type === 'select' && currentQ.options && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {currentQ.options.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => handleSelectAnswer(opt.value)}
-                    style={{
-                      padding: '0.85rem 1.25rem',
-                      borderRadius: 'var(--radius-md)',
-                      background: answers[currentQ.field] === opt.value ? 'var(--accent-primary)' : 'var(--bg-app)',
-                      color: answers[currentQ.field] === opt.value ? '#ffffff' : 'var(--text-primary)',
-                      border: `1.5px solid ${answers[currentQ.field] === opt.value ? 'var(--accent-primary)' : 'var(--border-normal)'}`,
-                      fontSize: '0.95rem',
-                      fontWeight: 600,
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <span>{language === 'hi' ? opt.label_hi : opt.label_en}</span>
-                    {answers[currentQ.field] === opt.value && <Check size={18} />}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Numeric Input */}
-            {currentQ.type === 'number' && (
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                <input
-                  type="number"
-                  min={currentQ.min ?? 0}
-                  max={currentQ.max ?? 100000000}
-                  placeholder={language === 'hi' ? currentQ.placeholder_hi : currentQ.placeholder_en}
-                  value={customNumInput !== '' ? customNumInput : (answers[currentQ.field] ?? '')}
-                  onChange={(e) => setCustomNumInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customNumInput) {
-                      handleSelectAnswer(Number(customNumInput));
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.85rem 1.15rem',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--bg-app)',
-                    border: '1.5px solid var(--border-normal)',
-                    fontSize: '1rem',
-                    color: 'var(--text-primary)',
-                    outline: 'none'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (customNumInput) handleSelectAnswer(Number(customNumInput));
-                  }}
-                  disabled={!customNumInput && answers[currentQ.field] === undefined}
-                  className="btn btn-primary"
-                  style={{ padding: '0.85rem 1.5rem', fontSize: '0.95rem' }}
-                >
-                  {language === 'hi' ? 'स्वीकार करें' : 'Confirm'}
-                </button>
-              </div>
-            )}
+        {/* ------------------------------------------------------------- */}
+        {/* PROGRESS STEPPER BAR */}
+        {/* ------------------------------------------------------------- */}
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-800 rounded-xl p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {currentStep <= 7 ? (
+                <>
+                  {isHindi ? `चरण ${currentStep} / 7: ${currentCategory?.title_hi}` : `Step ${currentStep} of 7: ${currentCategory?.title_en}`}
+                </>
+              ) : (
+                <>
+                  {isHindi ? 'चरण 8 / 8: अंतिम समीक्षा और संपादन' : 'Step 8 of 8: Final Review & Submission'}
+                </>
+              )}
+            </span>
+            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+              {currentStep === 8 ? '100%' : `${progressPercent}%`} {isHindi ? 'पूर्ण' : 'Completed'}
+            </span>
           </div>
 
-          {/* Bottom Actions: Previous, Not Sure, and Submit */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingTop: '1.25rem',
-              borderTop: '1px solid var(--border-subtle)',
-              marginTop: '1rem',
-              flexWrap: 'wrap',
-              gap: '0.75rem'
-            }}
-          >
+          {/* Progress Bar Line */}
+          <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden mb-6">
+            <div
+              className="bg-emerald-600 h-full rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${currentStep === 8 ? 100 : progressPercent}%` }}
+            />
+          </div>
+
+          {/* Stepper Navigation Pills */}
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            {CATEGORY_DEFINITIONS.map(cat => {
+              const IconComp = cat.icon;
+              const isPast = currentStep > cat.step;
+              const isCurrent = currentStep === cat.step;
+
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCurrentStep(cat.step)}
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg text-center transition-all border ${
+                    isCurrent
+                      ? 'border-2 border-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-bold'
+                      : isPast
+                      ? 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                      : 'border-transparent text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400'
+                  }`}
+                >
+                  <div className="relative mb-1">
+                    <IconComp size={18} />
+                    {isPast && (
+                      <span className="absolute -top-1 -right-2 bg-emerald-600 text-white rounded-full p-0.5">
+                        <Check size={10} strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-medium leading-tight line-clamp-1">
+                    {isHindi ? cat.title_hi.split(' ')[0] : cat.title_en.split(' ')[0]}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* Step 8: Review Pill */}
             <button
               type="button"
-              onClick={() => currentIdx > 0 && setCurrentIdx(currentIdx - 1)}
-              disabled={currentIdx === 0}
-              className="btn btn-secondary btn-sm"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                opacity: currentIdx === 0 ? 0.4 : 1
-              }}
+              onClick={() => setCurrentStep(8)}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg text-center transition-all border ${
+                currentStep === 8
+                  ? 'border-2 border-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-bold'
+                  : 'border-transparent text-slate-400 dark:text-slate-600 hover:text-slate-600'
+              }`}
             >
-              <ArrowLeft size={14} />
-              <span>{language === 'hi' ? 'पिछला' : 'Previous'}</span>
+              <CheckCircle2 size={18} className="mb-1" />
+              <span className="text-[11px] font-medium leading-tight">
+                {isHindi ? 'समीक्षा' : 'Review'}
+              </span>
             </button>
+          </div>
+        </div>
 
-            {/* "Not Sure" Support (Three-Valued UNKNOWN) */}
-            <button
-              type="button"
-              onClick={handleNotSure}
-              className="btn btn-ghost btn-sm"
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-              title="Leaves this field unknown so the evaluator can note missing criteria"
-            >
-              <HelpCircle size={15} />
-              <span>{language === 'hi' ? 'मुझे पता नहीं / छोड़ें (Not Sure)' : 'Not Sure / Leave Blank'}</span>
-            </button>
+        {/* ------------------------------------------------------------- */}
+        {/* STEP CONTENT: CATEGORIES 1 TO 7 */}
+        {/* ------------------------------------------------------------- */}
+        {currentStep <= 7 && currentCategory && (
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-800 rounded-xl p-6 sm:p-8 shadow-sm space-y-8 animate-fadeIn">
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 rounded-xl border border-emerald-300 dark:border-emerald-800">
+                  {React.createElement(currentCategory.icon, { size: 24 })}
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                    {isHindi ? currentCategory.title_hi : currentCategory.title_en}
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {isHindi ? currentCategory.desc_hi : currentCategory.desc_en}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-            {/* Submit or Next */}
-            {isLastQuestion ? (
+            {/* Questions Grid */}
+            <div className="space-y-6">
+              {visibleCategoryQuestions.map(q => {
+                const currentValue = answers[q.field];
+                const isNotSure = currentValue === 'not_sure';
+
+                return (
+                  <div
+                    key={q.id}
+                    className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:border-slate-300 dark:hover:border-slate-700 transition-all space-y-3"
+                  >
+                    {/* Question Header & Tooltip */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-base font-semibold text-slate-900 dark:text-white">
+                            {isHindi ? q.label_hi : q.label_en}
+                          </label>
+                          {q.required && (
+                            <span className="text-red-500 font-bold" title="Mandatory field">*</span>
+                          )}
+                          {q.official_verification_required && (
+                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                              {isHindi ? 'सरकारी सत्यापन' : 'Official Verification'}
+                            </span>
+                          )}
+                        </div>
+                        {q.tooltip_en && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                            <Info size={13} className="text-slate-400 flex-shrink-0" />
+                            {isHindi ? q.tooltip_hi : q.tooltip_en}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Not Sure Button */}
+                      {!q.required && (
+                        <button
+                          type="button"
+                          onClick={() => handleNotSure(q.field)}
+                          className={`text-xs px-2.5 py-1 rounded-md border font-medium transition-colors ${
+                            isNotSure
+                              ? 'bg-amber-100 border-amber-400 text-amber-900 dark:bg-amber-950 dark:border-amber-700 dark:text-amber-200 font-bold'
+                              : 'border-slate-300 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {isHindi ? 'अभी निश्चित नहीं' : 'Not sure'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Question Control: Boolean */}
+                    {q.type === 'boolean' && (
+                      <div className="flex items-center gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange(q.field, true)}
+                          className={`flex-1 sm:flex-initial min-w-[120px] py-2.5 px-4 rounded-lg font-bold text-sm border-2 transition-all flex items-center justify-center gap-2 ${
+                            currentValue === true
+                              ? 'bg-emerald-600 border-emerald-700 text-white shadow-sm'
+                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-slate-400'
+                          }`}
+                        >
+                          {currentValue === true && <Check size={16} />}
+                          {isHindi ? 'हाँ (Yes)' : 'Yes'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange(q.field, false)}
+                          className={`flex-1 sm:flex-initial min-w-[120px] py-2.5 px-4 rounded-lg font-bold text-sm border-2 transition-all flex items-center justify-center gap-2 ${
+                            currentValue === false
+                              ? 'bg-slate-800 dark:bg-slate-700 border-slate-900 text-white shadow-sm'
+                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-slate-400'
+                          }`}
+                        >
+                          {currentValue === false && <Check size={16} />}
+                          {isHindi ? 'नहीं (No)' : 'No'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Question Control: Number */}
+                    {q.type === 'number' && (
+                      <div className="pt-1 max-w-sm">
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={q.min ?? 0}
+                            max={q.max}
+                            value={currentValue !== undefined && currentValue !== 'not_sure' ? currentValue : ''}
+                            onChange={e => handleInputChange(q.field, e.target.value === '' ? null : Number(e.target.value))}
+                            placeholder={isHindi ? q.placeholder_hi : q.placeholder_en}
+                            className="w-full px-4 py-2.5 text-base rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-600 focus:outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Question Control: Select */}
+                    {q.type === 'select' && q.options && (
+                      <div className="pt-1 max-w-md">
+                        <select
+                          value={currentValue !== undefined && currentValue !== 'not_sure' ? currentValue : ''}
+                          onChange={e => handleInputChange(q.field, e.target.value || null)}
+                          className="w-full px-4 py-2.5 text-base rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-600 focus:outline-none transition-colors"
+                        >
+                          <option value="">{isHindi ? '-- कृपया विकल्प चुनें --' : '-- Select an option --'}</option>
+                          {q.options.map(opt => (
+                            <option key={opt.value} value={opt.value}>
+                              {isHindi ? opt.label_hi : opt.label_en}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Question Control: Text */}
+                    {q.type === 'text' && (
+                      <div className="pt-1 max-w-md">
+                        <input
+                          type="text"
+                          value={currentValue !== undefined && currentValue !== 'not_sure' ? currentValue : ''}
+                          onChange={e => handleInputChange(q.field, e.target.value || null)}
+                          placeholder={isHindi ? q.placeholder_hi : q.placeholder_en}
+                          className="w-full px-4 py-2.5 text-base rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-600 focus:outline-none transition-colors"
+                        />
+                      </div>
+                    )}
+
+                    {isNotSure && (
+                      <div className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                        {isHindi
+                          ? 'आपने "निश्चित नहीं" चुना है। नियम मूल्यांकनकर्ता इस मानदंड को UNKNOWN मानेगा और आवश्यकता पड़ने पर स्पष्टीकरण मांगेगा।'
+                          : 'Marked as "Not Sure". Evaluator will evaluate this condition using Kleene UNKNOWN logic without hard rejection.'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Stepper Navigation Buttons */}
+            <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={handleSubmitEvaluation}
+                onClick={handlePrevStep}
+                disabled={currentStep === 1}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border-2 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <ArrowLeft size={16} />
+                {isHindi ? 'पिछला चरण' : 'Previous Step'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg border-2 border-slate-900 dark:border-emerald-700 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all"
+              >
+                {currentStep === 7 ? (
+                  <>
+                    {isHindi ? 'समीक्षा देखें' : 'Review Summary'}
+                    <ChevronRight size={18} />
+                  </>
+                ) : (
+                  <>
+                    {isHindi ? 'अगला चरण' : 'Next Step'}
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* STEP 8: REVIEW & EDIT SUMMARY SCREEN */}
+        {/* ------------------------------------------------------------- */}
+        {currentStep === 8 && (
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-800 rounded-xl p-6 sm:p-8 shadow-sm space-y-8 animate-fadeIn">
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2.5 py-0.5 text-xs font-bold uppercase rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    {isHindi ? 'अंतिम चरण' : 'Step 8 of 8'}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {isHindi ? 'प्रश्नावली सारांश एवं अंतिम समीक्षा' : 'Review & Verify Your Profile Inputs'}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isHindi
+                    ? 'कृपया अपने सभी उत्तरों की जांच करें। किसी भी श्रेणी को बदलने के लिए "संपादित करें" पर क्लिक करें।'
+                    : 'Check your submitted details below before executing the deterministic eligibility engine.'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSubmitAssessment}
                 disabled={isSubmitting}
-                className="btn btn-primary"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.65rem 1.5rem',
-                  fontWeight: 700
-                }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-slate-900 dark:border-emerald-700 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base shadow-lg transition-all"
               >
                 {isSubmitting ? (
-                  <RefreshCw size={16} className="animate-spin" />
+                  <>
+                    <RefreshCw size={18} className="animate-spin" />
+                    {isHindi ? 'मूल्यांकन जारी है...' : 'Evaluating Rules...'}
+                  </>
                 ) : (
-                  <Sparkles size={16} />
+                  <>
+                    <Sparkles size={18} />
+                    {isHindi ? 'पात्रता की आधिकारिक जांच करें' : 'Run Eligibility Check'}
+                  </>
                 )}
-                <span>{language === 'hi' ? 'पात्रता परिणाम देखें' : 'View Eligibility Results'}</span>
               </button>
-            ) : (
+            </div>
+
+            {/* Category Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {CATEGORY_DEFINITIONS.map(cat => {
+                const IconComp = cat.icon;
+                const catQuestions = questions.filter(q => q.category === cat.id);
+
+                return (
+                  <div
+                    key={cat.id}
+                    className="p-5 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 space-y-3"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <IconComp size={18} className="text-emerald-600 dark:text-emerald-400" />
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                          {isHindi ? cat.title_hi : cat.title_en}
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(cat.step)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
+                      >
+                        <Edit3 size={13} />
+                        {isHindi ? 'संपादित करें' : 'Edit'}
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs">
+                      {catQuestions.slice(0, 4).map(q => {
+                        const val = answers[q.field];
+                        let displayVal = isHindi ? 'अनुत्तरित' : 'Not Answered';
+
+                        if (val === true) displayVal = isHindi ? 'हाँ' : 'Yes';
+                        else if (val === false) displayVal = isHindi ? 'नहीं' : 'No';
+                        else if (val === 'not_sure') displayVal = isHindi ? 'निश्चित नहीं' : 'Not Sure';
+                        else if (val !== null && val !== undefined && val !== '') displayVal = String(val);
+
+                        return (
+                          <div key={q.id} className="flex justify-between items-center py-0.5">
+                            <span className="text-slate-500 dark:text-slate-400 truncate max-w-[60%]">
+                              {isHindi ? q.label_hi : q.label_en}
+                            </span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              {displayVal}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => setCurrentIdx(currentIdx + 1)}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                onClick={() => setCurrentStep(7)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border-2 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
-                <span>{language === 'hi' ? 'आगे बढ़ें' : 'Next'}</span>
-                <ArrowRight size={14} />
+                <ArrowLeft size={16} />
+                {isHindi ? 'दस्तावेज चरण पर वापस जाएं' : 'Back to Documents'}
               </button>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Answered Summary Pills */}
-      <div
-        className="glass-card"
-        style={{
-          padding: '1rem 1.25rem',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.65rem'
-        }}
-      >
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-          {language === 'hi' ? 'आपके द्वारा दी गई जानकारी (Live Profile):' : 'Captured Profile Attributes:'}
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-          {Object.entries(answers).map(([k, v]) => (
-            <span
-              key={k}
-              style={{
-                fontSize: '0.75rem',
-                padding: '0.2rem 0.55rem',
-                borderRadius: 'var(--radius-sm)',
-                background: v === 'not_sure' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-app)',
-                border: `1px solid ${v === 'not_sure' ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-normal)'}`,
-                color: v === 'not_sure' ? 'var(--accent-danger)' : 'var(--text-primary)'
-              }}
-            >
-              <strong>{k}:</strong> {String(v)}
-            </span>
-          ))}
-          {Object.keys(answers).length === 0 && (
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              {language === 'hi' ? 'प्रश्नों के उत्तर देने पर विवरण यहाँ दिखाई देगा।' : 'Answers will appear here as you proceed.'}
-            </span>
-          )}
-        </div>
+              <button
+                type="button"
+                onClick={handleSubmitAssessment}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-lg border-2 border-slate-900 dark:border-emerald-700 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base shadow-lg transition-all"
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw size={18} className="animate-spin" />
+                    {isHindi ? 'मूल्यांकन चल रहा है...' : 'Evaluating Rules...'}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={18} />
+                    {isHindi ? 'पात्रता की आधिकारिक जांच करें' : 'Run Eligibility Check'}
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
 };
-

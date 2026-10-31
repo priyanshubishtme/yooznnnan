@@ -5,6 +5,8 @@ import yaml
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.core.logging import logger
+from backend.app.db.base import Base
+from backend.app.db.session import sync_engine
 from backend.app.db.models import Scheme, Source
 
 REGISTRY_DIR = Path(__file__).resolve().parent.parent.parent.parent / "registry"
@@ -12,6 +14,9 @@ REGISTRY_DIR = Path(__file__).resolve().parent.parent.parent.parent / "registry"
 
 async def seed_database(session: AsyncSession) -> None:
     """Populates database with initial schemes and sources if tables are empty."""
+    # Ensure all tables defined in models are created in the database
+    Base.metadata.create_all(bind=sync_engine)
+
     # 1. Seed Schemes
     schemes_file = REGISTRY_DIR / "schemes.yaml"
     if schemes_file.exists():

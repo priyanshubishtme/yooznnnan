@@ -40,3 +40,4 @@ proc = subprocess.Popen(
 pid_file = workspace_root / "data" / "frontend.pid"
 pid_file.write_text(str(proc.pid), encoding="utf-8")
 print(f"Started detached Yojana Sahayak frontend with PID: {proc.pid} on port 5173")
+

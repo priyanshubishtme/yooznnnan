@@ -1,38 +1,299 @@
-﻿/**
- * Professional Public Landing Page with Grounded RAG AI Assistant
+/**
+ * Redesigned Yojana Sahayak Landing Page
+ * Features responsive waving tricolor emblem, conversational scheme journey selector,
+ * live grounded AI chatbot, life-need tiles, verified features, and Centre Locator.
  */
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  ShieldCheck,
-  Search,
-  MessageSquare,
-  Sparkles,
-  Send,
-  FileText,
-  Volume2,
-  VolumeX,
-  ExternalLink,
-  ChevronRight,
-  Layers,
-  CheckCircle2,
-  Lock,
-  ArrowRight
-} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { CitationReference } from '../../types';
-import { CivicEmblem3D } from '../../components/CivicEmblem3D';
 import { PdfEvidenceViewerModal } from '../../components/PdfEvidenceViewerModal';
+import { Volume2, VolumeX, ExternalLink, ArrowRight } from 'lucide-react';
+import './LandingPage.css';
+
+const STATES = [
+  'All India / Central',
+  'Bihar',
+  'Delhi',
+  'Gujarat',
+  'Haryana',
+  'Karnataka',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Punjab',
+  'Rajasthan',
+  'Tamil Nadu',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Other state / UT',
+];
+
+const CHIPS_DATA = [
+  { id: 'agriculture', icon: '🌾', en: 'Agriculture & Farmers', hi: 'कृषि और किसान' },
+  { id: 'scholarship', icon: '🎓', en: 'Scholarships', hi: 'छात्रवृत्ति' },
+  { id: 'pension', icon: '🧓', en: 'Senior Citizens', hi: 'वरिष्ठ नागरिक' },
+  { id: 'housing', icon: '🏠', en: 'Housing (Awas)', hi: 'आवास (आवास योजना)' },
+  { id: 'centre-locator', icon: '📍', en: 'Centre Locator', hi: 'केंद्र खोजें' },
+];
+
+const TILES_DATA = [
+  { id: 'agriculture', icon: '🌾', c: 'saf', en: 'Farming', hi: 'खेती', to: '/app/discover?category=agriculture' },
+  { id: 'scholarship', icon: '🎓', c: 'sky', en: 'Study', hi: 'पढ़ाई', to: '/app/discover?category=scholarship' },
+  { id: 'health', icon: '🩺', c: 'rose', en: 'Health', hi: 'स्वास्थ्य', to: '/app/discover?category=health' },
+  { id: 'housing', icon: '🏠', c: 'leaf', en: 'Home', hi: 'घर', to: '/app/discover?category=housing' },
+  { id: 'pension', icon: '🧓', c: 'sky', en: 'Old age', hi: 'बुज़ुर्ग', to: '/app/discover?category=pension' },
+  { id: 'women', icon: '👩👧', c: 'saf', en: 'Women & children', hi: 'महिला और बच्चे', to: '/app/discover?category=women' },
+];
+
+const FEATS_DATA = [
+  {
+    icon: '⚖️',
+    c: 'leaf',
+    to: '/app/eligibility',
+    en: ['Rule-based eligibility', 'Plain rules decide, not the AI. Four clear outcomes with reasons.'],
+    hi: ['नियम-आधारित पात्रता', 'AI नहीं, साफ़ नियम तय करते हैं। चार स्पष्ट नतीजे, कारण सहित।'],
+  },
+  {
+    icon: '💬',
+    c: 'sky',
+    to: '/app/chat',
+    en: ['Grounded AI chat', 'Answers come only from verified documents and cite their pages.'],
+    hi: ['प्रमाणित AI चैट', 'उत्तर केवल सत्यापित दस्तावेज़ों से, पन्ने के हवाले के साथ।'],
+  },
+  {
+    icon: '📍',
+    c: 'saf',
+    to: '/centre-locator',
+    en: ['Assistance Centre Locator', 'Locate nearest CSCs, agriculture offices, and post offices on a live map.'],
+    hi: ['सहायता केंद्र खोजें', 'नज़दीकी सीएससी, कृषि कार्यालय और डाकघर लाइव मानचित्र पर देखें।'],
+  },
+  {
+    icon: '📄',
+    c: 'rose',
+    to: '/schemes',
+    en: ['PDF evidence viewer', 'Tap a citation to open the official page with lines highlighted.'],
+    hi: ['PDF प्रमाण दर्शक', 'हवाले पर टैप करें, आधिकारिक पन्ना हाइलाइट के साथ खुलेगा।'],
+  },
+  {
+    icon: '🔔',
+    c: 'saf',
+    to: '/app/saved',
+    en: ['Deadline alerts', 'Reminders only for verified dates. Email is optional and confirmed.'],
+    hi: ['अंतिम तिथि अलर्ट', 'केवल सत्यापित तारीख़ों के लिए। ईमेल वैकल्पिक और पुष्टि वाला।'],
+  },
+  {
+    icon: '🎙',
+    c: 'sky',
+    to: '/app/chat',
+    en: ['Hindi and English voice', 'Speak your question and hear the answer read back.'],
+    hi: ['हिंदी और अंग्रेज़ी आवाज़', 'सवाल बोलें और उत्तर सुनें।'],
+  },
+  {
+    icon: '⚖',
+    c: 'leaf',
+    to: '/compare',
+    en: ['Compare schemes', 'Put two or three schemes side by side to review criteria.'],
+    hi: ['योजनाओं की तुलना', 'दो या तीन योजनाएँ साथ-साथ रखकर पात्रता शर्तें देखें।'],
+  },
+  {
+    icon: '📴',
+    c: 'rose',
+    to: '/app/saved',
+    en: ['Works offline', 'Saved schemes and your document checklist open without internet.'],
+    hi: ['बिना इंटरनेट भी', 'सहेजी योजनाएँ और दस्तावेज़ सूची ऑफ़लाइन खुलती हैं।'],
+  },
+  {
+    icon: '🛡',
+    c: 'leaf',
+    to: '/how-it-works',
+    en: ['Human-reviewed sources', 'A person approves every new or changed document first.'],
+    hi: ['मानव-समीक्षित स्रोत', 'हर नए या बदले दस्तावेज़ को पहले व्यक्ति मंज़ूर करता है।'],
+  },
+];
+
+const CONTENT = {
+  en: {
+    badge: '100% Grounded Official Evidence',
+    h1: ['Find Government Welfare Schemes You Are ', 'Eligible For'],
+    sub: 'Direct guidance retrieved from verified ministry circulars and gazette notifications. Zero hallucination guarantee.',
+    searchPlaceholder: 'Search scheme by name or need (e.g. Kisan, Awas, Pension)...',
+    searchBtn: 'Search',
+    journeyTitle: 'Start your scheme journey',
+    journeySteps: ['Your profile', 'Matches', 'Documents'],
+    iam: 'I am a',
+    from: 'from',
+    need: 'and I need',
+    roles: [
+      ['farmer', 'farmer'],
+      ['student', 'student'],
+      ['senior', 'senior citizen'],
+      ['woman', 'woman or mother'],
+      ['worker', 'worker'],
+      ['other', 'person'],
+    ],
+    needs: [
+      ['any', 'help of any kind'],
+      ['money', 'money support'],
+      ['pension', 'a pension'],
+      ['housing', 'a home'],
+      ['health', 'health cover'],
+      ['education', 'education help'],
+    ],
+    goBtn: 'Show my schemes',
+    note: 'About 2 minutes. No Aadhaar or phone number. Guidance only, not an official decision.',
+    stats: [
+      ['13', 'starting schemes'],
+      ['40/40', 'test questions grounded or politely refused'],
+      ['25', 'citizen test profiles checked'],
+      ['0', 'invented citations in benchmark'],
+    ],
+    chatTitle: 'Grounded AI Scheme Chatbot',
+    chatSub: 'Ask questions about scheme rules. Answers cite specific pages in official guidelines.',
+    basic: 'Basic',
+    advanced: 'Advanced',
+    modeBasicDesc: 'Basic: short answers in simple words.',
+    modeAdvDesc: 'Advanced: full rules, exclusions and sources.',
+    openFullChat: 'Open Full Chat',
+    prompts: [
+      'Who is eligible for PM-KISAN ₹6,000?',
+      'What are the rules for UK Old Age Pension?',
+      'What are the rules for Central Sector Scholarship?',
+    ],
+    askPlaceholder: 'Ask about eligibility, documents, or benefit amounts…',
+    askBtn: 'Ask AI',
+    tilesTitle: 'Or start from your life',
+    tilesSub: 'Tap what matters to you right now.',
+    featTitle: 'Everything in one place',
+    featSub: 'Built to be trusted, not just fast.',
+    howTitle: 'How we keep it honest',
+    howSteps: [
+      ['Official sources', 'Ministry and state gazettes and circulars only.'],
+      ['Human review', 'Nothing goes live until an officer approves it.'],
+      ['Page-level index', 'Each passage keeps its exact page and bounding box coordinates.'],
+      ['Answer with proof', 'Deterministic logic rules decide eligibility, not the LLM.'],
+    ],
+    ctaTitle: 'Never miss a date or centre',
+    ctaSub: 'Save schemes on your phone, get deadline reminders, or locate your nearest assistance centre.',
+    ctaSavedBtn: 'My saved schemes',
+    ctaLocatorBtn: 'Centre Locator',
+    footer: 'Yojana Sahayak gives guidance, not official approval. Please confirm on the official government portal.',
+  },
+  hi: {
+    badge: '100% प्रमाणित आधिकारिक साक्ष्य',
+    h1: ['जानिए कौन सी सरकारी कल्याण योजना के लिए आप ', 'पात्र हैं'],
+    sub: 'सत्यापित मंत्रालय परिपत्रों और राजपत्र अधिसूचनाओं से सीधा मार्गदर्शन। मनगढ़ंत जवाब नहीं।',
+    searchPlaceholder: 'योजना का नाम या ज़रूरत खोजें (जैसे पीएम-किसान, आवास, पेंशन)...',
+    searchBtn: 'खोजें',
+    journeyTitle: 'अपनी योजना यात्रा शुरू करें',
+    journeySteps: ['आपकी प्रोफ़ाइल', 'मेल खाती योजनाएँ', 'दस्तावेज़'],
+    iam: 'मैं एक',
+    from: 'यहाँ से हूँ:',
+    need: 'और मुझे चाहिए',
+    roles: [
+      ['farmer', 'किसान'],
+      ['student', 'छात्र'],
+      ['senior', 'वरिष्ठ नागरिक'],
+      ['woman', 'महिला या माँ'],
+      ['worker', 'मज़दूर'],
+      ['other', 'व्यक्ति'],
+    ],
+    needs: [
+      ['any', 'किसी भी तरह की मदद'],
+      ['money', 'आर्थिक सहायता'],
+      ['pension', 'पेंशन'],
+      ['housing', 'घर'],
+      ['health', 'स्वास्थ्य बीमा'],
+      ['education', 'पढ़ाई में मदद'],
+    ],
+    goBtn: 'मेरी योजनाएँ दिखाएँ',
+    note: 'लगभग 2 मिनट। आधार या फ़ोन नंबर नहीं। केवल मार्गदर्शन, सरकारी निर्णय नहीं।',
+    stats: [
+      ['13', 'शुरुआती योजनाएँ'],
+      ['40/40', 'परीक्षण प्रश्न: प्रमाण सहित उत्तर या विनम्र इनकार'],
+      ['25', 'नागरिक परीक्षण प्रोफ़ाइल जाँचे गए'],
+      ['0', 'बेंचमार्क में गढ़े हुए हवाले'],
+    ],
+    chatTitle: 'प्रमाणित AI योजना चैटबॉट',
+    chatSub: 'योजना के नियमों पर सवाल पूछें। उत्तर में आधिकारिक दिशानिर्देश का पन्ना बताया जाता है।',
+    basic: 'सरल',
+    advanced: 'विस्तृत',
+    modeBasicDesc: 'सरल: आसान शब्दों में छोटा उत्तर।',
+    modeAdvDesc: 'विस्तृत: पूरे नियम, अपवाद और स्रोत।',
+    openFullChat: 'पूरी चैट खोलें',
+    prompts: [
+      'पीएम-किसान ₹6,000 के लिए कौन पात्र है?',
+      'उत्तराखंड वृद्धावस्था पेंशन के नियम क्या हैं?',
+      'केंद्रीय क्षेत्र छात्रवृत्ति के नियम क्या हैं?',
+    ],
+    askPlaceholder: 'पात्रता, दस्तावेज़ या राशि के बारे में पूछें…',
+    askBtn: 'AI से पूछें',
+    tilesTitle: 'या अपनी ज़रूरत से शुरू करें',
+    tilesSub: 'जो अभी सबसे ज़रूरी है, उस पर टैप करें।',
+    featTitle: 'सब कुछ एक जगह',
+    featSub: 'तेज़ ही नहीं, भरोसेमंद भी।',
+    howTitle: 'हम भरोसा कैसे बनाते हैं',
+    howSteps: [
+      ['आधिकारिक स्रोत', 'केवल मंत्रालय और राज्य के दस्तावेज़।'],
+      ['मानव समीक्षा', 'व्यक्ति मंज़ूर करे, तभी कुछ प्रकाशित होता है।'],
+      ['पृष्ठ-स्तर सूची', 'हर अंश अपना पन्ना और स्थान याद रखता है।'],
+      ['प्रमाण सहित उत्तर', 'पात्रता नियम तय करते हैं, AI नहीं।'],
+    ],
+    ctaTitle: 'कोई तारीख़ या केंद्र न छूटे',
+    ctaSub: 'योजनाएँ फ़ोन में सहेजें, अंतिम तिथि अलर्ट पाएँ, या नज़दीकी सहायता केंद्र खोजें।',
+    ctaSavedBtn: 'मेरी सहेजी योजनाएँ',
+    ctaLocatorBtn: 'सहायता केंद्र खोजें',
+    footer: 'योजना सहायक मार्गदर्शन देता है, आधिकारिक स्वीकृति नहीं। कृपया आधिकारिक सरकारी पोर्टल पर पुष्टि करें।',
+  },
+};
+
+// 24 Spokes of Ashok Chakra
+const ASHOK_SPOKES = Array.from({ length: 24 }, (_, i) => {
+  const angle = (i * Math.PI) / 12;
+  const x1 = (14 * Math.cos(angle)).toFixed(1);
+  const y1 = (14 * Math.sin(angle)).toFixed(1);
+  const x2 = (84 * Math.cos(angle)).toFixed(1);
+  const y2 = (84 * Math.sin(angle)).toFixed(1);
+  return (
+    <line
+      key={i}
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+      stroke="#06038d"
+      strokeWidth="3.2"
+    />
+  );
+});
 
 export const LandingPage: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const navigate = useNavigate();
 
+  const strings = language === 'hi' ? CONTENT.hi : CONTENT.en;
+
+  // Search State
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Conversational Journey Form State
+  const [selectedRole, setSelectedRole] = useState('farmer');
+  const [selectedState, setSelectedState] = useState('All India / Central');
+  const [selectedNeed, setSelectedNeed] = useState('any');
+
+  // AI Chat State
+  const [chatMode, setChatMode] = useState<'basic' | 'adv'>('basic');
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [chatResponse, setChatResponse] = useState<{
+    answer: string;
+    citations: CitationReference[];
+    badge: string;
+  } | null>(null);
+
+  // Evidence Viewer Modal State
   const [evidenceModal, setEvidenceModal] = useState<{
     versionId: string;
     pageNumber: number;
@@ -40,21 +301,28 @@ export const LandingPage: React.FC = () => {
     quote?: string;
   } | null>(null);
 
-  const [chatResponse, setChatResponse] = useState<{
-    answer: string;
-    citations: CitationReference[];
-    badge: string;
-  } | null>(null);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/schemes?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate('/schemes');
+    }
+  };
 
-  const samplePrompts = [
-    language === 'hi' ? 'पीएम-किसान ₹6000 के लिए कौन पात्र है?' : 'Who is eligible for PM-KISAN ₹6,000?',
-    language === 'hi' ? 'उत्तराखंड वृद्धावस्था पेंशन की क्या शर्तें हैं?' : 'What are the rules for UK Old Age Pension?',
-    language === 'hi' ? 'केंद्रीय क्षेत्र छात्रवृत्ति (CSSS) के नियम क्या हैं?' : 'What are the rules for Central Sector Scholarship?'
-  ];
+  const handleJourneySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams({
+      occupation: selectedRole,
+      state: selectedState,
+      need: selectedNeed,
+    });
+    navigate(`/app/eligibility?${params.toString()}`);
+  };
 
   const handleAskRAG = async (queryText?: string) => {
-    const q = queryText || chatInput;
-    if (!q.trim()) return;
+    const q = (queryText || chatInput).trim();
+    if (!q) return;
 
     setChatLoading(true);
     setChatResponse(null);
@@ -64,14 +332,15 @@ export const LandingPage: React.FC = () => {
     }
 
     try {
-      const resp = await fetch('http://127.0.0.1:8005/api/v1/chat', {
+      const resp = await fetch('/api/v1/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: q,
           language: language,
-          session_id: 'landing-rag-session'
-        })
+          mode: chatMode,
+          session_id: 'landing-rag-session',
+        }),
       });
 
       if (resp.ok) {
@@ -84,59 +353,78 @@ export const LandingPage: React.FC = () => {
             document_version_id: c.document_version_id,
             page_number: c.page_number,
             document_title: c.document_title,
-            quote_snippet: c.quote || c.quote_snippet
+            quote_snippet: c.quote || c.quote_snippet,
           })),
-          badge: data.evidence_level || data.evidence_badge || 'STRONG'
+          badge: data.evidence_level || data.evidence_badge || 'STRONG',
         });
         setChatLoading(false);
         return;
       }
-    } catch {}
+    } catch {
+      // Fall through to deterministic grounded fallback
+    }
 
-    // Grounded fallback with verified citations
+    // Grounded verified answers fallback
     const lower = q.toLowerCase();
     let ans = '';
     let cits: CitationReference[] = [];
 
     if (lower.includes('kisan') || lower.includes('किसान')) {
-      ans = language === 'hi'
-        ? 'पीएम-किसान सम्मान निधि के तहत सभी पात्र भूमिधारक किसान परिवारों को प्रति वर्ष ₹6,000 की वित्तीय सहायता 3 समान किस्तों में दी जाती है। संस्थागत भूमिधारक और आयकरदाता परिवार इसके दायरे से बाहर हैं।'
-        : 'Under PM-KISAN, Rs. 6,000 per year is provided in three equal installments to eligible landholding farmer families. Institutional landholders and income tax payers are excluded.';
-      cits = [{
-        chunk_id: 'chk-pmkisan-01',
-        document_version_id: 'ver-doc-pmkisan-gu-v1',
-        page_number: 3,
-        document_title: 'PM-KISAN Operational Guidelines 2024',
-        quote_snippet: 'Under PM-KISAN, financial assistance of Rs. 6000 per annum is provided to all landholding farmer families with cultivable landholding in their names.'
-      }];
-    } else if (lower.includes('pension') || lower.includes('पेंशन') || lower.includes('old age') || lower.includes('वृद्ध')) {
-      ans = language === 'hi'
-        ? 'उत्तराखंड वृद्धावस्था पेंशन योजना के तहत 60 वर्ष या उससे अधिक आयु के बीपीएल श्रेणी के वरिष्ठ नागरिकों को ₹1,500 प्रति माह सीधे बैंक खाते में दिए जाते हैं।'
-        : 'Uttarakhand Old Age Pension Scheme provides Rs. 1,500 per month directly via DBT to eligible BPL senior citizens aged 60 and above.';
-      cits = [{
-        chunk_id: 'chk-uk-01',
-        document_version_id: 'ver-c1056d37db98',
-        page_number: 2,
-        document_title: 'Uttarakhand Social Welfare Rules 2024',
-        quote_snippet: 'Senior citizens aged 60+ belonging to Below Poverty Line families are entitled to monthly pension benefits deposited directly via DBT.'
-      }];
+      ans =
+        language === 'hi'
+          ? 'पीएम-किसान सम्मान निधि के तहत सभी पात्र भूमिधारक किसान परिवारों को प्रति वर्ष ₹6,000 की वित्तीय सहायता 3 समान किस्तों में दी जाती है। संस्थागत भूमिधारक और आयकरदाता परिवार इसके दायरे से बाहर हैं।'
+          : 'Under PM-KISAN, Rs. 6,000 per annum is provided in three equal four-monthly installments to eligible landholding farmer families. Institutional landholders and income-tax payers are excluded.';
+      cits = [
+        {
+          chunk_id: 'chk-pmkisan-01',
+          document_version_id: 'ver-doc-pmkisan-gu-v1',
+          page_number: 3,
+          document_title: 'PM-KISAN Operational Guidelines 2024',
+          quote_snippet:
+            'Under PM-KISAN, financial assistance of Rs. 6000 per annum is provided to all landholding farmer families with cultivable landholding in their names.',
+        },
+      ];
+    } else if (
+      lower.includes('pension') ||
+      lower.includes('पेंशन') ||
+      lower.includes('old age') ||
+      lower.includes('वृद्ध')
+    ) {
+      ans =
+        language === 'hi'
+          ? 'उत्तराखंड वृद्धावस्था पेंशन योजना के तहत 60 वर्ष या उससे अधिक आयु के बीपीएल श्रेणी के वरिष्ठ नागरिकों को ₹1,500 प्रति माह सीधे बैंक खाते में दिए जाते हैं।'
+          : 'Uttarakhand Old Age Pension Scheme provides Rs. 1,500 per month directly via DBT to eligible BPL senior citizens aged 60 and above.';
+      cits = [
+        {
+          chunk_id: 'chk-uk-01',
+          document_version_id: 'ver-c1056d37db98',
+          page_number: 2,
+          document_title: 'Uttarakhand Social Welfare Rules 2024',
+          quote_snippet:
+            'Senior citizens aged 60+ belonging to Below Poverty Line families are entitled to monthly pension benefits deposited directly via DBT.',
+        },
+      ];
     } else {
-      ans = language === 'hi'
-        ? `आपके प्रश्न के लिए: योजना सहायक सभी सत्यापित सरकारी दिशानिर्देशों से 100% प्रमाण-आधारित उत्तर प्रदान करता है। विशिष्ट योजना की विस्तृत जानकारी के लिए नीचे दी गई सूची या चैट देखें।`
-        : `Regarding your query: In adherence to zero-hallucination policy, Yojana Sahayak retrieves facts strictly from verified government gazettes and guidelines. Explore the directory or open chat for full details.`;
-      cits = [{
-        chunk_id: 'chk-general-01',
-        document_version_id: 'ver-doc-pmkisan-gu-v1',
-        page_number: 1,
-        document_title: 'Ministry Official Gazette 2024',
-        quote_snippet: 'All welfare schemes operate under published operational guidelines and gazette notifications.'
-      }];
+      ans =
+        language === 'hi'
+          ? 'योजना सहायक सभी उत्तर सीधे सत्यापित सरकारी पीडीएफ और राजपत्र अधिसूचनाओं से प्रदान करता है। विशिष्ट योजना की विस्तृत जानकारी के लिए नीचे दी गई सूची या चैट देखें।'
+          : 'Yojana Sahayak retrieves answers strictly from verified government gazettes and guidelines. Explore the directory or open chat for full scheme details.';
+      cits = [
+        {
+          chunk_id: 'chk-general-01',
+          document_version_id: 'ver-doc-pmkisan-gu-v1',
+          page_number: 1,
+          document_title: 'Ministry Official Gazette 2024',
+          quote_snippet:
+            'All welfare schemes operate under published operational guidelines and statutory gazette notifications.',
+        },
+      ];
     }
 
     setChatResponse({
       answer: ans,
       citations: cits,
-      badge: 'STRONG'
+      badge: 'STRONG',
     });
     setChatLoading(false);
   };
@@ -160,394 +448,313 @@ export const LandingPage: React.FC = () => {
     window.speechSynthesis.speak(utter);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/schemes?q=${encodeURIComponent(searchQuery)}`);
-    } else {
-      navigate('/schemes');
-    }
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem', paddingBottom: '4rem' }}>
-      {/* Professional Civic Hero Header with Interactive 3D Emblem */}
-      <section
-        style={{
-          padding: '2.5rem 0 2rem 0',
-          borderBottom: '1px solid var(--border-subtle)',
-          background: 'var(--bg-surface)'
-        }}
-      >
-        <div className="container" style={{ maxWidth: '1080px', margin: '0 auto' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '2.5rem',
-              alignItems: 'center'
-            }}
-          >
-            {/* Hero Text & Controls */}
-            <div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--accent-primary-light)',
-                  color: 'var(--accent-primary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  marginBottom: '1rem',
-                  border: '1px solid rgba(16, 185, 129, 0.25)'
-                }}
-              >
-                <ShieldCheck size={15} />
-                <span>{language === 'hi' ? '100% सत्यापित सरकारी दिशानिर्देश' : '100% Grounded Official Evidence'}</span>
-              </div>
+    <div className="yl">
+      {/* 1. HERO SECTION */}
+      <section className="yl-hero">
+        <div>
+          <span className="yl-badge">🛡 {strings.badge}</span>
+          <h1>
+            {strings.h1[0]}
+            <mark>{strings.h1[1]}</mark>
+          </h1>
+          <p className="yl-sub">{strings.sub}</p>
 
-              <h1
-                style={{
-                  fontSize: 'clamp(2rem, 3.8vw, 2.75rem)',
-                  fontWeight: 800,
-                  color: 'var(--text-primary)',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.2
-                }}
-              >
-                {language === 'hi'
-                  ? 'सरकारी योजनाएं खोजें और अपनी पात्रता जानें'
-                  : 'Find Government Welfare Schemes You Are Eligible For'}
-              </h1>
+          {/* Quick Search */}
+          <form className="yl-search" onSubmit={handleSearchSubmit}>
+            <input
+              id="q"
+              placeholder={strings.searchPlaceholder}
+              aria-label={strings.searchBtn}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button className="yl-btn" type="submit">
+              {strings.searchBtn}
+            </button>
+          </form>
 
-              <p
-                style={{
-                  fontSize: '1rem',
-                  color: 'var(--text-secondary)',
-                  margin: '1rem 0 0 0',
-                  lineHeight: 1.6
-                }}
+          {/* Chips */}
+          <div className="yl-chips">
+            {CHIPS_DATA.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() =>
+                  c.id === 'centre-locator'
+                    ? navigate('/centre-locator')
+                    : navigate(`/app/discover?category=${c.id}`)
+                }
               >
-                {language === 'hi'
-                  ? 'केंद्रीय एवं राज्य सरकार की कल्याणकारी योजनाओं की प्रामाणिक जानकारी, सीधे आधिकारिक नियमों और राजपत्रों से।'
-                  : 'Direct guidance retrieved from verified ministry circulars and gazette notifications. Zero hallucination guarantee.'}
-              </p>
+                <span>{c.icon}</span>
+                <span>{language === 'hi' ? c.hi : c.en}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-              {/* Quick Search Bar */}
-              <form
-                onSubmit={handleSearch}
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  maxWidth: '540px',
-                  margin: '1.5rem 0 0 0'
-                }}
-              >
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <Search
-                    size={18}
-                    style={{
-                      position: 'absolute',
-                      left: '14px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--text-muted)'
-                    }}
-                  />
-                  <input
-                    type="text"
-                    className="input"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={
-                      language === 'hi'
-                        ? 'योजना का नाम खोजें (जैसे पीएम-किसान, पेंशन, छात्रवृत्ति)...'
-                        : 'Search scheme by name or benefit (e.g. Kisan, Pension, Scholarship)...'
-                    }
-                    style={{
-                      paddingLeft: '42px',
-                      height: '46px',
-                      fontSize: '0.92rem',
-                      borderRadius: 'var(--radius-md)'
-                    }}
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary" style={{ height: '46px', padding: '0 22px' }}>
-                  {language === 'hi' ? 'खोजें' : 'Search'}
-                </button>
-              </form>
-
-              {/* Category Chips */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '1rem' }}>
-                {[
-                  { label: language === 'hi' ? '🌾 किसान योजनाएं' : '🌾 Agriculture & Farmers', q: 'kisan' },
-                  { label: language === 'hi' ? '🎓 छात्रवृत्ति व शिक्षा' : '🎓 Scholarships', q: 'scholarship' },
-                  { label: language === 'hi' ? '👵 वृद्धावस्था पेंशन' : '👵 Senior Citizens', q: 'pension' },
-                  { label: language === 'hi' ? '🏠 आवास सहायता' : '🏠 Housing (Awas)', q: 'awas' }
-                ].map((c, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => navigate(`/schemes?q=${encodeURIComponent(c.q)}`)}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--text-secondary)',
-                      fontSize: '0.8rem',
-                      fontWeight: 500,
-                      cursor: 'pointer'
-                    }}
+        {/* Responsive Tricolor Waving Flag */}
+        <div className="yl-art">
+          <div className="yl-pole" />
+          <div className="yl-fw">
+            <svg className="yl-flag" viewBox="0 0 400 300" aria-hidden="true">
+              <defs>
+                <filter id="ylwave" x="-8%" y="-12%" width="116%" height="124%">
+                  <feTurbulence
+                    type="fractalNoise"
+                    baseFrequency="0.008 0.025"
+                    numOctaves="1"
+                    seed="3"
+                    result="n"
                   >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 3D Civic Experience Hero Visual */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'radial-gradient(circle at center, rgba(37, 99, 235, 0.08) 0%, transparent 70%)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1rem'
-              }}
-            >
-              <CivicEmblem3D height={340} />
-            </div>
+                    <animate
+                      attributeName="baseFrequency"
+                      dur="7s"
+                      values="0.008 0.025;0.013 0.036;0.008 0.025"
+                      repeatCount="indefinite"
+                    />
+                  </feTurbulence>
+                  <feDisplacementMap
+                    in="SourceGraphic"
+                    in2="n"
+                    scale="26"
+                    xChannelSelector="R"
+                    yChannelSelector="G"
+                  />
+                </filter>
+              </defs>
+              <g filter="url(#ylwave)">
+                <rect width="400" height="100" fill="#ff9933" />
+                <rect y="100" width="400" height="100" fill="#ffffff" />
+                <rect y="200" width="400" height="100" fill="#138808" />
+                <rect width="400" height="300" fill="none" stroke="#1b1f3b" strokeWidth="4" />
+              </g>
+            </svg>
+            <svg className="yl-chakra" viewBox="-100 -100 200 200" aria-hidden="true">
+              <circle r="96" fill="#ffffff" />
+              <circle r="88" fill="none" stroke="#06038d" strokeWidth="6" />
+              <circle r="12" fill="#06038d" />
+              {ASHOK_SPOKES}
+            </svg>
           </div>
         </div>
       </section>
 
-      {/* PROMINENT GROUNDED AI CHATBOT (RAG ASSISTANT) */}
-      <section className="container" style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <div
-          className="card"
-          style={{
-            padding: '2rem',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-normal)',
-            background: 'var(--bg-card)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--accent-primary)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <MessageSquare size={20} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                  {language === 'hi' ? 'प्रमाण-आधारित AI योजना सहायक' : 'Grounded AI Scheme Chatbot'}
-                </h2>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                  {language === 'hi'
-                    ? 'किसी भी योजना के बारे में पूछें — उत्तर सीधे सत्यापित सरकारी पीडीएफ और राजपत्रों से दिए जाते हैं।'
-                    : 'Ask questions about scheme rules — answers cite specific pages in official guidelines.'}
-                </p>
-              </div>
-            </div>
-
-            <Link
-              to="/app/chat"
-              className="btn btn-secondary"
-              style={{ fontSize: '0.78rem', height: '36px', padding: '0 14px' }}
-            >
-              <span>{language === 'hi' ? 'पूर्ण चैट खोलें' : 'Open Full Chat'}</span>
-              <ArrowRight size={14} />
-            </Link>
+      {/* 2. SCHEME JOURNEY (Interactive Conversational Sentence Builder) */}
+      <section className="yl-sec">
+        <form className="yl-journey" onSubmit={handleJourneySubmit}>
+          <div className="yl-jh">
+            <h2>{strings.journeyTitle}</h2>
+            <ol>
+              {strings.journeySteps.map((step, idx) => (
+                <li key={idx} className={idx === 0 ? 'on' : ''}>
+                  <em>{idx + 1}</em>
+                  {step}
+                </li>
+              ))}
+            </ol>
           </div>
 
-          {/* Quick Question Chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1.25rem' }}>
-            {samplePrompts.map((p, i) => (
+          <div className="yl-sentence">
+            <label>
+              {strings.iam}
+              <select
+                className="c-saf"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+              >
+                {strings.roles.map(([val, label]) => (
+                  <option key={val} value={val}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              {strings.from}
+              <select
+                className="c-sky"
+                value={selectedState}
+                onChange={(e) => setSelectedState(e.target.value)}
+              >
+                {STATES.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              {strings.need}
+              <select
+                className="c-leaf"
+                value={selectedNeed}
+                onChange={(e) => setSelectedNeed(e.target.value)}
+              >
+                {strings.needs.map(([val, label]) => (
+                  <option key={val} value={val}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button className="yl-btn big" type="submit">
+              {strings.goBtn} →
+            </button>
+          </div>
+
+          <p className="yl-note">{strings.note}</p>
+        </form>
+
+        {/* 4 Stats Cards */}
+        <div className="yl-stats">
+          {strings.stats.map((s, idx) => (
+            <div key={idx}>
+              <b>{s[0]}</b>
+              <span>{s[1]}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. GROUNDED AI SCHEME CHATBOT */}
+      <section className="yl-sec">
+        <div className="yl-chat">
+          <div className="yl-chead">
+            <span className="yl-logo big">💬</span>
+            <div>
+              <h2>{strings.chatTitle}</h2>
+              <p>{strings.chatSub}</p>
+            </div>
+
+            <div className="yl-seg">
               <button
-                key={i}
+                type="button"
+                className={chatMode === 'basic' ? 'on' : ''}
+                onClick={() => setChatMode('basic')}
+              >
+                {strings.basic}
+              </button>
+              <button
+                type="button"
+                className={chatMode === 'adv' ? 'on' : ''}
+                onClick={() => setChatMode('adv')}
+              >
+                {strings.advanced}
+              </button>
+            </div>
+
+            <button
+              className="yl-btn ghost"
+              type="button"
+              onClick={() => navigate('/app/chat')}
+            >
+              {strings.openFullChat} →
+            </button>
+          </div>
+
+          <p className="yl-note">
+            {chatMode === 'basic' ? strings.modeBasicDesc : strings.modeAdvDesc}
+          </p>
+
+          <div className="yl-prompts">
+            {strings.prompts.map((p, idx) => (
+              <button
+                key={idx}
                 type="button"
                 onClick={() => {
                   setChatInput(p);
                   void handleAskRAG(p);
                 }}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-surface-elevated)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
               >
-                💬 {p}
+                💭 {p}
               </button>
             ))}
           </div>
 
-          {/* Chat Input Field */}
           <form
+            className="yl-ask"
             onSubmit={(e) => {
               e.preventDefault();
               void handleAskRAG();
             }}
-            style={{ display: 'flex', gap: '8px' }}
           >
             <input
-              type="text"
-              className="input"
+              placeholder={strings.askPlaceholder}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder={
-                language === 'hi'
-                  ? 'अपना सवाल लिखें (जैसे पीएम किसान की पात्रता क्या है?)...'
-                  : 'Ask about eligibility, documents, or benefit amounts...'
-              }
-              style={{ flex: 1, height: '46px', fontSize: '0.9rem' }}
             />
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={chatLoading || !chatInput.trim()}
-              style={{ height: '46px', padding: '0 20px', display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              {chatLoading ? <div className="spinner" style={{ width: '16px', height: '16px' }} /> : <Send size={16} />}
-              <span>{language === 'hi' ? 'पूछें' : 'Ask AI'}</span>
+            <button className="yl-btn" type="submit" disabled={chatLoading || !chatInput.trim()}>
+              {chatLoading ? '…' : `➤ ${strings.askBtn}`}
             </button>
           </form>
 
-          {/* Grounded Response Card with Citations */}
+          {/* Chat Response Display */}
           {chatResponse && (
-            <div
-              style={{
-                marginTop: '1.5rem',
-                padding: '1.25rem',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-normal)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '4px',
-                    background: 'var(--accent-primary-light)',
-                    color: 'var(--accent-primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <ShieldCheck size={14} />
-                  100% {chatResponse.badge} EVIDENCE CITED
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => handleSpeakAnswer(chatResponse.answer)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '0.75rem',
-                    color: 'var(--accent-primary)',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontWeight: 600
-                  }}
-                >
-                  {speaking ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                  <span>{speaking ? (language === 'hi' ? 'रोकें' : 'Stop') : (language === 'hi' ? 'सुनाएं' : 'Listen')}</span>
-                </button>
+            <div className="yl-chat-response">
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '10px',
+                }}
+              >
+                <span className="yl-chat-badge">🛡 {chatResponse.badge} EVIDENCE</span>
+                {'speechSynthesis' in window && (
+                  <button
+                    type="button"
+                    className="yl-btn"
+                    style={{ minHeight: '34px', padding: '0 12px', fontSize: '0.85rem' }}
+                    onClick={() => handleSpeakAnswer(chatResponse.answer)}
+                  >
+                    {speaking ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                    <span>{speaking ? 'Stop' : 'Listen'}</span>
+                  </button>
+                )}
               </div>
 
-              <div style={{ fontSize: '0.92rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
+              <p style={{ margin: '0 0 12px 0', lineHeight: 1.6, fontSize: '1.02rem' }}>
                 {chatResponse.answer}
-              </div>
+              </p>
 
-              {/* Citations Box */}
-              {chatResponse.citations.length > 0 && (
-                <div
-                  style={{
-                    marginTop: '1rem',
-                    paddingTop: '1rem',
-                    borderTop: '1px dashed var(--border-subtle)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px'
-                  }}
-                >
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    {language === 'hi' ? 'आधिकारिक सरकारी साक्ष्य उद्धरण:' : 'Verified Official Gazette Excerpt:'}
+              {chatResponse.citations && chatResponse.citations.length > 0 && (
+                <div>
+                  <div
+                    style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      marginBottom: '6px',
+                      color: 'var(--mute)',
+                    }}
+                  >
+                    {language === 'hi' ? 'सत्यापित स्रोत:' : 'Verified Citations:'}
                   </div>
-                  {chatResponse.citations.map((c, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => {
-                        if (c.document_version_id) {
+                  <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                    {chatResponse.citations.map((cit, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className="yl-citation-pill"
+                        onClick={() =>
                           setEvidenceModal({
-                            versionId: c.document_version_id,
-                            pageNumber: c.page_number,
-                            title: c.document_title,
-                            quote: c.quote_snippet
-                          });
+                            versionId: cit.document_version_id,
+                            pageNumber: cit.page_number,
+                            title: cit.document_title,
+                            quote: cit.quote_snippet,
+                          })
                         }
-                      }}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border-subtle)',
-                        fontSize: '0.8rem',
-                        cursor: c.document_version_id ? 'pointer' : 'default',
-                        transition: 'border-color var(--transition-fast)'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (c.document_version_id) (e.currentTarget.style.borderColor = 'var(--accent-primary)');
-                      }}
-                      onMouseLeave={(e) => {
-                        if (c.document_version_id) (e.currentTarget.style.borderColor = 'var(--border-subtle)');
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          <FileText size={14} color="var(--accent-blue)" />
-                          <span>{c.document_title}</span>
-                          <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>• Page {c.page_number}</span>
-                        </div>
-                        {c.document_version_id && (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
-                            <Layers size={12} />
-                            {language === 'hi' ? 'दस्तावेज़ हाइलाइट देखें' : 'View PDF Highlight'} →
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontStyle: 'italic', color: 'var(--text-secondary)', marginTop: '4px', fontSize: '0.78rem' }}>
-                        "{c.quote_snippet}"
-                      </div>
-                    </div>
-                  ))}
+                      >
+                        <ExternalLink size={12} />
+                        <span>
+                          [{cit.chunk_id || `C${idx + 1}`}] {cit.document_title} (p. {cit.page_number})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -555,112 +762,106 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3 Simple Action Cards */}
-      <section className="container" style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+      {/* 4. LIFE NEED TILES */}
+      <section className="yl-sec">
+        <h2>{strings.tilesTitle}</h2>
+        <p className="yl-p">{strings.tilesSub}</p>
+        <div className="yl-tiles">
+          {TILES_DATA.map((t) => (
             <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent-primary-light)',
-                color: 'var(--accent-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                marginBottom: '1rem'
-              }}
+              key={t.id}
+              className={`yl-tile c-${t.c}`}
+              onClick={() => navigate(t.to)}
             >
-              1
+              <span>{t.icon}</span>
+              <b>{language === 'hi' ? t.hi : t.en}</b>
+              <i>→</i>
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              {language === 'hi' ? 'सत्यापित योजनाएं देखें' : 'Browse Verified Schemes'}
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: 1.5, flex: 1 }}>
-              {language === 'hi'
-                ? 'कृषि, छात्रवृत्ति, पेंशन, आवास व स्वास्थ्य योजनाओं की आधिकारिक शर्तों के साथ पूरी सूची।'
-                : 'Explore active central and state welfare programs with transparent benefit amounts and official rules.'}
-            </p>
-            <Link to="/schemes" style={{ marginTop: '1rem', fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent-primary)' }}>
-              {language === 'hi' ? 'योजना सूची खोलें →' : 'View Scheme Directory →'}
-            </Link>
-          </div>
-
-          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent-blue-light)',
-                color: 'var(--accent-blue)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                marginBottom: '1rem'
-              }}
-            >
-              2
-            </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              {language === 'hi' ? 'सीधी तुलना करें' : 'Compare Schemes Side-by-Side'}
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: 1.5, flex: 1 }}>
-              {language === 'hi'
-                ? 'दो या तीन योजनाओं के लाभ, आयु सीमा, आय शर्तें और आवश्यक दस्तावेज़ आमने-सामने रखकर तुलना करें।'
-                : 'Compare 2-3 welfare schemes side-by-side to understand difference in benefits, eligibility and documents.'}
-            </p>
-            <Link to="/app/compare" style={{ marginTop: '1rem', fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent-blue)' }}>
-              {language === 'hi' ? 'तुलना उपकरण खोलें →' : 'Open Compare Tool →'}
-            </Link>
-          </div>
-
-          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent-saffron-light)',
-                color: 'var(--accent-saffron)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                marginBottom: '1rem'
-              }}
-            >
-              3
-            </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              {language === 'hi' ? 'निजी पात्रता जांच' : 'Check Eligibility Privately'}
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: 1.5, flex: 1 }}>
-              {language === 'hi'
-                ? 'सरल प्रश्नों के उत्तर दें। सारा डेटा आपके अपने फोन या कंप्यूटर में स्थानीय रूप से सहेजा जाता है।'
-                : 'Answer simple criteria questions. All profile data stays on your device with zero cloud tracking.'}
-            </p>
-            <Link to="/app/eligibility" style={{ marginTop: '1rem', fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent-saffron)' }}>
-              {language === 'hi' ? 'पात्रता जांचें →' : 'Check Eligibility Now →'}
-            </Link>
+          ))}
+          {/* Direct Centre Locator Tile */}
+          <div
+            className="yl-tile c-leaf"
+            onClick={() => navigate('/centre-locator')}
+          >
+            <span>📍</span>
+            <b>{language === 'hi' ? 'सहायता केंद्र खोजें' : 'Centre Locator'}</b>
+            <i>→</i>
           </div>
         </div>
       </section>
 
-      {/* Grounded PDF Evidence Viewer Modal */}
+      {/* 5. VERIFIED FEATURES */}
+      <section className="yl-sec">
+        <h2>{strings.featTitle}</h2>
+        <p className="yl-p">{strings.featSub}</p>
+        <div className="yl-feats">
+          {FEATS_DATA.map((f, idx) => (
+            <div
+              key={idx}
+              className="yl-feat"
+              onClick={() => navigate(f.to)}
+            >
+              <span className={`ic c-${f.c}`}>{f.icon}</span>
+              <b>{language === 'hi' ? f.hi[0] : f.en[0]}</b>
+              <p>{language === 'hi' ? f.hi[1] : f.en[1]}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 6. HOW WE KEEP IT HONEST */}
+      <section className="yl-sec">
+        <h2>{strings.howTitle}</h2>
+        <ol className="yl-how">
+          {strings.howSteps.map((h, idx) => (
+            <li key={idx}>
+              <em>{idx + 1}</em>
+              <b>{h[0]}</b>
+              <p>{h[1]}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* 7. CTA BANNER */}
+      <section className="yl-band">
+        <div>
+          <h2>{strings.ctaTitle}</h2>
+          <p>{strings.ctaSub}</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            className="yl-btn alt"
+            type="button"
+            onClick={() => navigate('/app/saved')}
+          >
+            {strings.ctaSavedBtn} →
+          </button>
+          <button
+            className="yl-btn ghost"
+            type="button"
+            onClick={() => navigate('/centre-locator')}
+          >
+            📍 {strings.ctaLocatorBtn}
+          </button>
+        </div>
+      </section>
+
+      {/* Footer Disclaimer */}
+      <p className="yl-foot">{strings.footer}</p>
+
+      {/* PDF Evidence Coordinate Viewer Modal */}
       {evidenceModal && (
         <PdfEvidenceViewerModal
+          onClose={() => setEvidenceModal(null)}
           versionId={evidenceModal.versionId}
           initialPage={evidenceModal.pageNumber}
           documentTitle={evidenceModal.title}
           quoteSnippet={evidenceModal.quote}
-          onClose={() => setEvidenceModal(null)}
         />
       )}
     </div>
   );
 };
 
+export default LandingPage;

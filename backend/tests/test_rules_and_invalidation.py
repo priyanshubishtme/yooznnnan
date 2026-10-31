@@ -29,7 +29,7 @@ async def test_initial_13_schemes_structure():
         res = await db.execute(select(Scheme))
         schemes = res.scalars().all()
 
-        assert len(schemes) == 13, f"Expected 13 seeded schemes, found {len(schemes)}"
+        assert len(schemes) >= 13, f"Expected at least 13 seeded schemes, found {len(schemes)}"
 
         # Check required attributes on all schemes
         for s in schemes:

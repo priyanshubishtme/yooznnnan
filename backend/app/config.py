@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     admin_session_secret: str = "dev-insecure-secret-key-change-in-production"
     admin_username: str = "admin"
     admin_password: str = "adminpassword"
+    admin_master_key: str = "yojana-admin-master-2026"
 
     # Storage & Persistence
     database_url: str = "sqlite+aiosqlite:///./data/yojana_sahayak.db"
@@ -45,7 +46,7 @@ class Settings(BaseSettings):
 
     # LLM Settings (Groq API)
     groq_api_key: str = ""
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-120b"
     groq_base_url: str = "https://api.groq.com/openai/v1"
     llm_temperature: float = 0.1
     llm_max_output_tokens: int = 700
@@ -68,13 +69,15 @@ class Settings(BaseSettings):
     scraper_request_interval_seconds: int = 5
     scheduler_process_mode: str = "dedicated_single_instance"
 
-    # Email Reminders (Optional)
+    # Email Reminders & Notifications
     email_notifications_enabled: bool = False
+    email_provider: str = "resend"  # "resend" or "smtp"
+    resend_api_key: str = ""
     smtp_host: str = "smtp.example.com"
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "noreply@yojanasahayak.local"
+    smtp_from: str = "noreply@yojanasahayak.gov.in"
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
