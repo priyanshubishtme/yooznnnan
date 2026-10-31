@@ -56,6 +56,9 @@ data/indexes/
 data/debug/
 data/fetched/
 data/pdfs/
+data/*.lock
+*.lock
+!package-lock.json
 !data/pdfs/.gitkeep
 !data/fetched/.gitkeep
 !data/debug/.gitkeep

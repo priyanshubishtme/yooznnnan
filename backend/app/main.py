@@ -14,11 +14,12 @@ from backend.app.core.logging import logger
 from backend.app.core.middleware import RequestContextMiddleware
 from backend.app.db.seed import seed_database
 from backend.app.db.session import AsyncSessionLocal
+from backend.app.scheduler.manager import scheduler_manager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handling database readiness and seed validation."""
+    """Application lifespan handling database readiness, seed validation, and APScheduler lifecycle."""
     logger.info(f"Starting {settings.app_name} in {settings.app_env} environment...")
     try:
         async with AsyncSessionLocal() as session:
@@ -26,8 +27,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Database seed check warning: {e}")
 
+    # Start single-instance scheduler if enabled
+    if settings.scheduler_process_mode:
+        started = scheduler_manager.start()
+        if started:
+            try:
+                await scheduler_manager.reconcile_source_schedules()
+            except Exception as e:
+                logger.warning(f"Initial schedule reconciliation warning: {e}")
+
     yield
+
     logger.info(f"Shutting down {settings.app_name}...")
+    scheduler_manager.shutdown()
 
 
 def create_app() -> FastAPI:

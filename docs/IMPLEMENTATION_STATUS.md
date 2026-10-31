@@ -10,7 +10,7 @@ Preserving full product scope with zero feature deletion.
 | Phase | Description | Original Blueprint Phases | Status | Gate Checklist |
 |---|---|---|---|---|
 | **Phase 1** | **Foundation and Design System** | Phases 0 & 1 | **COMPLETED** | [x] Backend starts, [x] Frontend starts, [x] DB migrates from empty, [x] No secrets committed, [x] All public, citizen & admin routes navigable |
-| **Phase 2** | **Source Registry, Compliance Gate & Scheduler** | Phases 2 & 3 | *Pending* | [ ] Prohibited/pending source cannot run automatically, [ ] Scheduler runs once, [ ] Jobs idempotent, [ ] Failures observable |
+| **Phase 2** | **Source Registry, Compliance Gate & Scheduler** | Phases 2 & 3 | **COMPLETED** | [x] Prohibited/pending source cannot run automatically, [x] Scheduler runs once, [x] Jobs idempotent, [x] Failures observable |
 | **Phase 3** | **Discovery, Fetching & Admin Review Console** | Phases 4 & 5 | *Pending* | [ ] New/changed/unchanged classified correctly on fixtures, [ ] No candidate public/searchable before approval |
 | **Phase 4** | **PDF Ingestion & Coordinate Extraction** | Phase 6 | *Pending* | [ ] Every chunk keeps page and boxes, [ ] Spot-checks pass, [ ] One single shared ingestion path |
 | **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | *Pending* | [ ] Every active rule has verified quote & page, [ ] Source change disables rules until re-approved, [ ] 13 initial scheme records |
@@ -19,6 +19,40 @@ Preserving full product scope with zero feature deletion.
 | **Phase 8** | **Citizen Application, PDF Evidence Viewer & 3D Experience** | Phase 11 | *Pending* | [ ] End-to-end journeys pass on mobile/desktop, [ ] Source chips open exact PDF highlight boxes, [ ] 3D landing page responsive |
 | **Phase 9** | **PWA, Offline, Voice, My Schemes & Notifications** | Phases 12 & 13 | *Pending* | [ ] Saved schemes open offline, [ ] Chat/eligibility network-only, [ ] Voice text fallback, [ ] Verified email unsubscribe works |
 | **Phase 10** | **Evaluation, Security, Deployment & Demo** | Phase 14 | *Pending* | [ ] Full test suites pass, [ ] Security & dependency review, [ ] Rate limits active, [ ] Production deployment scripts verified |
+
+---
+
+## Phase 2 Detail Checklist (Source Registry, Compliance Gate & Scheduler) — Passed
+
+- [x] **Source Registry & Seeding**:
+  - `registry/sources.yaml` seeded with 5 official portals: `SRC-MIN-AGRI`, `SRC-UK-SOCIAL-WELFARE`, `SRC-INDIA-GOV`, `SRC-DBT-BHARAT`, and `SRC-MYSCHEME-DIR`.
+  - Comprehensive source models in SQLAlchemy tracking jurisdiction, family, fetch mode, permission status, automation status, cron schedule, and audit logs.
+- [x] **Strict Compliance Gate (Blueprint Section 3.3 & 3.5)**:
+  - `ComplianceGate` enforces human policy approval before any source can run automatically or manually.
+  - Pending and prohibited sources strictly return HTTP 403 `COMPLIANCE_GATE_BLOCKED`.
+  - myScheme restricted to manual-only / disabled (`written_authorization_required`). Automation cannot be enabled absent a verified written authorization reference.
+  - Human compliance review endpoint `POST /api/v1/admin/sources/{source_id}/review` records reviewer identity, decisions, notes, and optional live `robots.txt` inspection.
+- [x] **Source Adapter Interface & Registry**:
+  - `SourceAdapter` protocol defining `discover`, `fetch`, `parse`, and `normalize`.
+  - Deterministic fixture adapter for PM-KISAN and UK Old Age Pension.
+  - Ministry adapter with safe HTML/PDF parsing and exponential backoff.
+  - Strict myScheme compliance adapter blocking automated crawls with `PolicyViolationError`.
+- [x] **Dedicated Single-Instance Scheduler (Blueprint Section 16.2)**:
+  - APScheduler 3.x manager running in dedicated single-instance mode with PID file locking (`SchedulerProcessLock`). Stale locks from terminated processes automatically reclaimed.
+  - Per-source locking (`PerSourceLockManager`) prevents overlapping discovery runs and rejects concurrent execution with HTTP 409 `SOURCE_JOB_ACTIVE`.
+  - Automatic cron reconciliation syncing enabled and approved sources with the scheduler.
+  - Pause (`/api/v1/admin/scheduler/pause`) and Resume (`/api/v1/admin/scheduler/resume`) controls with live heartbeat telemetry.
+- [x] **Manual Run Now & Idempotent Audited Discovery**:
+  - `POST /api/v1/admin/sources/{source_id}/discover` triggers on-demand discovery.
+  - Creates tracked `DiscoveryRun`, `ResourceObservation`, `FetchAttempt`, and `ResourceCandidate` records.
+  - SHA-256 binary hash deduplication ensures idempotent runs without duplicate candidates.
+  - Failures are observable in database logs, job telemetry, and admin UI.
+- [x] **Interactive Admin Frontend**:
+  - `AdminSourcesPage`: Live source list with badges, compliance block callouts, policy review dialog, enable/disable toggles, and Run Now execution.
+  - `AdminDiscoveryPage`: Live scheduler telemetry cards, active cron jobs list, pause/resume controls, and recent discovery run table with failure inspection modal.
+- [x] **Phase 2 Gate Verification**:
+  - Automated Pytest suite with 11 tests passing.
+  - Automated browser subagent verification executing policy review, enabling source, Run Now discovery, and scheduler pause/resume. All 4 gate criteria satisfied.
 
 ---
 
@@ -42,4 +76,5 @@ Preserving full product scope with zero feature deletion.
 - [x] **Gate Verification**: Backend runs and responds to health check; frontend starts without errors and all routes are navigable on mobile and desktop. Verified with automated browser testing.
 
 ---
-*Last Updated:* Phase 1 Completed Successfully
+*Last Updated:* Phase 2 Completed Successfully
+
