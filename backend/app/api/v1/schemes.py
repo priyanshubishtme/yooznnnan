@@ -117,4 +117,34 @@ async def get_scheme_detail(
         "benefits_summary_hi": scheme.benefits_summary_hi
     }
 
+    # Load only verified documents linked to this scheme (Blueprint Section 5.2 & Gate Rule)
+    from backend.app.db.models import Document, DocumentVersion, SchemeDocument
+
+    doc_query = (
+        select(Document, DocumentVersion)
+        .join(SchemeDocument, Document.id == SchemeDocument.document_id)
+        .join(DocumentVersion, Document.id == DocumentVersion.document_id)
+        .where(
+            SchemeDocument.scheme_id == scheme_id,
+            Document.status == "verified",
+            DocumentVersion.status == "verified"
+        )
+    )
+    doc_res = await db.execute(doc_query)
+    verified_docs = [
+        {
+            "document_id": doc.id,
+            "title": doc.title,
+            "document_type": doc.document_type,
+            "version_id": ver.id,
+            "version_number": ver.version_number,
+            "storage_key": ver.storage_key,
+            "content_type": ver.content_type,
+            "binary_sha256": ver.binary_sha256
+        }
+        for doc, ver in doc_res.all()
+    ]
+    data["verified_documents"] = verified_docs
+
     return success_response(data=data, request_id=request_id)
+

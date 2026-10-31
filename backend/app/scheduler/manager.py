@@ -13,10 +13,12 @@ import uuid
 from typing import Any, Dict, List, Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from backend.app.config import settings
 from backend.app.core.errors import AppException
 from backend.app.core.logging import logger
+from backend.app.discovery.diff import DiffEngine
+from backend.app.discovery.storage import storage_service
 from backend.app.db.base import utc_now
 from backend.app.db.models import (
     AuditEvent,
@@ -248,21 +250,55 @@ class SchedulerManager:
                         session.add(attempt)
 
                         if fetch_result.status_code == 200 and fetch_result.content_bytes:
-                            # 7. Parse & Normalize
+                            # 7. Persist raw bytes immutably in content-addressable storage
+                            storage_service.store_bytes(
+                                fetch_result.content_bytes,
+                                fetch_result.content_type
+                            )
+
+                            # 8. Parse & Normalize
                             parsed_list = adapter.parse(fetch_result)
                             for parsed in parsed_list:
                                 normalized = adapter.normalize(parsed)
 
-                                # Check if identical binary hash already exists in candidates
-                                existing_cand = await session.execute(
-                                    select(ResourceCandidate).where(
-                                        ResourceCandidate.binary_sha256 == normalized.binary_sha256
-                                    )
+                                # Store text snippet preview for fast diffing and UI inspection
+                                storage_service.store_text_snippet(
+                                    normalized.binary_sha256,
+                                    normalized.extracted_text
                                 )
-                                if existing_cand.scalars().first() is not None:
-                                    classification = "duplicate"
-                                else:
-                                    classification = normalized.classification
+
+                                # Check prior observations/candidates for this URL
+                                prior_res = await session.execute(
+                                    select(ResourceCandidate)
+                                    .where(ResourceCandidate.canonical_url == normalized.canonical_url)
+                                    .order_by(desc(ResourceCandidate.created_at))
+                                )
+                                prior_cands = prior_res.scalars().all()
+                                has_prior = len(prior_cands) > 0
+                                prior_cand = prior_cands[0] if has_prior else None
+
+                                # Check if exact binary hash exists anywhere else
+                                dup_res = await session.execute(
+                                    select(ResourceCandidate)
+                                    .where(ResourceCandidate.binary_sha256 == normalized.binary_sha256)
+                                )
+                                exact_binary_match = dup_res.scalars().first() is not None
+
+                                # Classify using DiffEngine per Blueprint Section 4.4
+                                classification = DiffEngine.classify_resource(
+                                    is_known_url=has_prior,
+                                    is_exact_binary_duplicate=exact_binary_match,
+                                    has_prior_version=has_prior,
+                                    old_binary_sha256=prior_cand.binary_sha256 if prior_cand else None,
+                                    new_binary_sha256=normalized.binary_sha256,
+                                    old_text_sha256=prior_cand.normalized_text_sha256 if prior_cand else None,
+                                    new_text_sha256=normalized.normalized_text_sha256
+                                )
+
+                                # Per Blueprint Section 4.3: Unchanged is recorded; no duplicate pending candidate
+                                if classification == "unchanged":
+                                    logger.info(f"Resource {normalized.canonical_url} is unchanged (SHA-256 match).")
+                                    continue
 
                                 cand = ResourceCandidate(
                                     id=f"cand-{uuid.uuid4().hex[:12]}",
@@ -283,7 +319,7 @@ class SchedulerManager:
                                 session.add(cand)
                                 candidates_created += 1
 
-                    # 8. Mark Run Completed
+                    # 9. Mark Run Completed
                     run.status = "completed"
                     run.pages_discovered = pages_discovered
                     run.pages_fetched = pages_fetched

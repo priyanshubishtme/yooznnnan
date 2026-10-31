@@ -111,18 +111,22 @@ export interface DiscoveryJob {
 export interface ResourceCandidate {
   id: string;
   source_id: string;
+  source_name?: string;
+  run_id?: string;
   canonical_url: string;
   original_url: string;
   content_type: string;
   binary_sha256: string;
+  normalized_text_sha256?: string;
   title?: string;
   issuer?: string;
   detected_date?: string;
-  classification: 'new_resource' | 'changed_binary' | 'changed_content' | 'duplicate';
-  review_status: 'pending_review' | 'approved' | 'rejected' | 'duplicate';
+  classification: 'new_resource' | 'changed_binary' | 'changed_content' | 'duplicate' | string;
+  review_status: 'pending_review' | 'approved' | 'rejected' | 'duplicate' | string;
   review_notes?: string;
   assigned_scheme_id?: string;
-  created_at: string;
+  created_at?: string;
+  reviewed_at?: string;
 }
 
 export interface AuditRecord {

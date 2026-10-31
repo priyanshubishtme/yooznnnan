@@ -11,7 +11,7 @@ Preserving full product scope with zero feature deletion.
 |---|---|---|---|---|
 | **Phase 1** | **Foundation and Design System** | Phases 0 & 1 | **COMPLETED** | [x] Backend starts, [x] Frontend starts, [x] DB migrates from empty, [x] No secrets committed, [x] All public, citizen & admin routes navigable |
 | **Phase 2** | **Source Registry, Compliance Gate & Scheduler** | Phases 2 & 3 | **COMPLETED** | [x] Prohibited/pending source cannot run automatically, [x] Scheduler runs once, [x] Jobs idempotent, [x] Failures observable |
-| **Phase 3** | **Discovery, Fetching & Admin Review Console** | Phases 4 & 5 | *Pending* | [ ] New/changed/unchanged classified correctly on fixtures, [ ] No candidate public/searchable before approval |
+| **Phase 3** | **Discovery, Fetching & Admin Review Console** | Phases 4 & 5 | **COMPLETED** | [x] New/changed/unchanged classified correctly on fixtures, [x] No candidate public/searchable before approval |
 | **Phase 4** | **PDF Ingestion & Coordinate Extraction** | Phase 6 | *Pending* | [ ] Every chunk keeps page and boxes, [ ] Spot-checks pass, [ ] One single shared ingestion path |
 | **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | *Pending* | [ ] Every active rule has verified quote & page, [ ] Source change disables rules until re-approved, [ ] 13 initial scheme records |
 | **Phase 6** | **Hybrid Retrieval & Groq RAG Chat** | Phases 8 & 9 | *Pending* | [ ] Only current verified versions retrieved, [ ] Zero hallucinated citation IDs, [ ] Unsupported questions refused, [ ] Final answer validated |
@@ -19,6 +19,38 @@ Preserving full product scope with zero feature deletion.
 | **Phase 8** | **Citizen Application, PDF Evidence Viewer & 3D Experience** | Phase 11 | *Pending* | [ ] End-to-end journeys pass on mobile/desktop, [ ] Source chips open exact PDF highlight boxes, [ ] 3D landing page responsive |
 | **Phase 9** | **PWA, Offline, Voice, My Schemes & Notifications** | Phases 12 & 13 | *Pending* | [ ] Saved schemes open offline, [ ] Chat/eligibility network-only, [ ] Voice text fallback, [ ] Verified email unsubscribe works |
 | **Phase 10** | **Evaluation, Security, Deployment & Demo** | Phase 14 | *Pending* | [ ] Full test suites pass, [ ] Security & dependency review, [ ] Rate limits active, [ ] Production deployment scripts verified |
+
+---
+
+## Phase 3 Detail Checklist (Discovery, Fetching & Admin Review Console) — Passed
+
+- [x] **Content-Addressable Storage Service (`backend/app/discovery/storage.py`)**:
+  - Raw downloaded binaries and PDFs persisted immutably keyed by SHA-256 fingerprint (`data/fetched/{hash}.bin`, `data/pdfs/{hash}.pdf`).
+  - Extracted text snippets persisted for fast diffing and inspection without re-parsing.
+- [x] **Diff Engine & Change Classification (`backend/app/discovery/diff.py`)**:
+  - Line-by-line unified diffing via Python `difflib` with additions/deletions statistics and similarity ratio.
+  - Generates machine-assisted review summaries clearly labelled: *"Machine-generated diff summary as review aid only; human inspection required."*
+  - Classifies resources deterministically: `new_resource`, `unchanged`, `changed_content`, `changed_binary`, and `duplicate`.
+  - Unchanged resources update observation timestamps without polluting the review queue with duplicates.
+- [x] **Admin Review Queue API (`backend/app/api/v1/review.py`)**:
+  - `GET /api/v1/admin/review-queue`: Filterable by status (`pending_review`, `approved`, `rejected`), source, and classification.
+  - `GET /api/v1/admin/review-queue/{id}`: Detailed provenance, text snippet preview, unified diff against prior version, and impacted eligibility rules preview.
+  - `POST /api/v1/admin/review-queue/{id}/approve`: Creates logical `Document` and immutable `DocumentVersion` in verified status; increments version number.
+  - **Rule Invalidation Mandate (Blueprint Section 5.3)**: Approving a new document version automatically marks all active dependent rules linked via `RuleDocumentDependency` to `needs_review` and marks prior versions as `superseded_pending_review`.
+  - `POST /api/v1/admin/review-queue/{id}/reject`: Records rejection reasons and audit logs.
+  - `POST /api/v1/admin/review-queue/{id}/assign-scheme`: Dynamically links candidates to schemes.
+- [x] **Public Search & Catalog Isolation Gate**:
+  - Public scheme catalogue and detail endpoints strictly filter on `Document.status == 'verified'` and `DocumentVersion.status == 'verified'`.
+  - Candidates in `pending_review` or `rejected` are completely isolated and never exposed to citizens.
+- [x] **Interactive Admin Review Console (`AdminReviewQueuePage.tsx`)**:
+  - Status tabs (`Pending Review`, `Approved & Verified`, `Rejected`, `All`).
+  - Candidate cards with classification badges, source tags, and SHA-256 hashes.
+  - Modal diff inspector with line-by-line changes and rule invalidation warnings.
+  - Approval modal with scheme selection, official document title, document type, and notes.
+  - Rejection dialog with required reason.
+- [x] **Phase 3 Gate Verification**:
+  - Pytest suite (17/17 passing) validating classification rules, unified diffs, approval flow, rule invalidation, and public isolation.
+  - Browser subagent verified candidate inspection, approval, tab filtering, and public catalog isolation. All gate criteria satisfied.
 
 ---
 

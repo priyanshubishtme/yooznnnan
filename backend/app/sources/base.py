@@ -40,10 +40,16 @@ def compute_sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+compute_binary_sha256 = compute_sha256
+
+
 def compute_normalized_text_sha256(text: str) -> str:
     """Computes SHA-256 hash of whitespace-normalized text."""
     normalized = " ".join((text or "").split()).strip().lower()
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+compute_text_sha256 = compute_normalized_text_sha256
 
 
 @dataclass
@@ -109,6 +115,7 @@ class NormalizedCandidate:
     detected_date: Optional[str]
     classification: str  # new_resource | changed_binary | changed_content | duplicate
     assigned_scheme_id: Optional[str] = None
+    extracted_text: str = ""
 
 
 class PolicyViolationError(Exception):

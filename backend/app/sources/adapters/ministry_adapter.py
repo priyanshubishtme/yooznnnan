@@ -132,5 +132,6 @@ class MinistryListingAdapter:
             title=candidate.title,
             issuer=candidate.issuer,
             detected_date=candidate.published_date,
-            classification="new_resource"
+            classification="new_resource",
+            extracted_text=candidate.extracted_text
         )

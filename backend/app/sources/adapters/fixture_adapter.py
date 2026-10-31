@@ -119,5 +119,6 @@ class FixtureSourceAdapter:
             issuer=candidate.issuer,
             detected_date=candidate.published_date,
             classification="new_resource",
-            assigned_scheme_id=candidate.metadata.get("scheme_id")
+            assigned_scheme_id=candidate.metadata.get("scheme_id"),
+            extracted_text=candidate.extracted_text
         )
