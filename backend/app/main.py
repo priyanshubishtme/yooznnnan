@@ -1,0 +1,77 @@
+"""FastAPI Application Entry Point for Yojana Sahayak.
+
+Configures middlewares, CORS, error handling, life cycle hooks, and routers.
+"""
+
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from backend.app.api.v1.health import router as root_health_router
+from backend.app.api.v1.router import api_v1_router
+from backend.app.config import settings
+from backend.app.core.errors import register_error_handlers
+from backend.app.core.logging import logger
+from backend.app.core.middleware import RequestContextMiddleware
+from backend.app.db.seed import seed_database
+from backend.app.db.session import AsyncSessionLocal
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handling database readiness and seed validation."""
+    logger.info(f"Starting {settings.app_name} in {settings.app_env} environment...")
+    try:
+        async with AsyncSessionLocal() as session:
+            await seed_database(session)
+    except Exception as e:
+        logger.warning(f"Database seed check warning: {e}")
+
+    yield
+    logger.info(f"Shutting down {settings.app_name}...")
+
+
+def create_app() -> FastAPI:
+    """Factory creating and configuring the FastAPI instance."""
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.version,
+        description="Bilingual, evidence-grounded government scheme discovery and deterministic eligibility assistant.",
+        lifespan=lifespan
+    )
+
+    # CORS configuration
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["X-Request-ID", "X-Process-Time-Ms"]
+    )
+
+    # Custom request context tracking middleware
+    app.add_middleware(RequestContextMiddleware)
+
+    # Global error handlers
+    register_error_handlers(app)
+
+    # Health router mounted at root level as well as /api/v1
+    app.include_router(root_health_router)
+
+    # Mount versioned API routes
+    app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
+
+    return app
+
+
+app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "backend.app.main:app",
+        host=settings.app_host,
+        port=settings.app_port,
+        reload=(settings.app_env == "development")
+    )
