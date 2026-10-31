@@ -21,6 +21,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
         # Exclude noisy health endpoint from info level logs
         if not request.url.path.endswith("/health"):

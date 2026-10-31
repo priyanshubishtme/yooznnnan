@@ -93,15 +93,16 @@ class DeterministicGroundedProvider(LLMProvider):
                 "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
                 "can", "could", "would", "should", "using", "about", "with", "from", "have", "been",
                 "does", "is", "are", "the", "for", "and", "give", "tell", "much", "many",
+                "provide", "provides", "get", "getting", "receive",
                 "scheme", "yojana", "guidelines", "kisan", "pmkisan", "pmjay", "pmayg", "samman", "nidhi"
             }
             substantive_q_words = [w for w in q_words if len(w) > 3 and w not in GENERIC_STOPWORDS]
             if substantive_q_words:
-                matched_substantive = [w for w in substantive_q_words if w in combined_text]
+                matched_substantive = [w for w in substantive_q_words if re.search(r'\b' + re.escape(w) + r'\b', combined_text)]
                 if len(matched_substantive) / float(len(substantive_q_words)) < 0.25:
                     return "INSUFFICIENT"
             else:
-                overlap = [w for w in q_words if len(w) > 3 and w in combined_text]
+                overlap = [w for w in q_words if len(w) > 3 and re.search(r'\b' + re.escape(w) + r'\b', combined_text)]
                 if not overlap:
                     return "INSUFFICIENT"
 
