@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Document Versions, Coordinate Extraction & Ingestion View
  * Full point-coordinate inspection, page-bounded chunking, and diagnostic verification.
  */
@@ -80,7 +80,7 @@ export const AdminDocumentsPage: React.FC = () => {
 
   const fetchDocuments = () => {
     setLoading(true);
-    fetch('http://localhost:8000/api/v1/admin/documents')
+    fetch('http://127.0.0.1:8005/api/v1/admin/documents')
       .then(res => res.json())
       .then(data => {
         if (data.ok && Array.isArray(data.data)) {
@@ -102,7 +102,7 @@ export const AdminDocumentsPage: React.FC = () => {
     setActionLoading(`ingest-${versionId}`);
     setStatusMsg(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/documents/${versionId}/ingest`, {
+      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/documents/${versionId}/ingest`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -133,8 +133,8 @@ export const AdminDocumentsPage: React.FC = () => {
 
     try {
       const [pagesRes, chunksRes] = await Promise.all([
-        fetch(`http://localhost:8000/api/v1/admin/documents/${doc.version_id}/pages`),
-        fetch(`http://localhost:8000/api/v1/admin/documents/${doc.version_id}/chunks`)
+        fetch(`http://127.0.0.1:8005/api/v1/admin/documents/${doc.version_id}/pages`),
+        fetch(`http://127.0.0.1:8005/api/v1/admin/documents/${doc.version_id}/chunks`)
       ]);
       const pagesData = await pagesRes.json();
       const chunksData = await chunksRes.json();
@@ -169,7 +169,7 @@ export const AdminDocumentsPage: React.FC = () => {
     formData.append('file', uploadFile);
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/admin/documents/upload', {
+      const res = await fetch('http://127.0.0.1:8005/api/v1/admin/documents/upload', {
         method: 'POST',
         body: formData
       });
@@ -557,7 +557,7 @@ export const AdminDocumentsPage: React.FC = () => {
                   }}
                 >
                   <img
-                    src={`http://localhost:8000/api/v1/admin/documents/${inspectVersion.version_id}/pages/${selectedPageNum}/debug-image`}
+                    src={`http://127.0.0.1:8005/api/v1/admin/documents/${inspectVersion.version_id}/pages/${selectedPageNum}/debug-image`}
                     alt="Diagnostic Coordinate Spot-Check"
                     style={{ width: '100%', height: 'auto', display: 'block' }}
                   />
@@ -736,3 +736,4 @@ export const AdminDocumentsPage: React.FC = () => {
     </div>
   );
 };
+

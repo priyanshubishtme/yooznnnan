@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Eligibility Rules Review & Lifecycle Invalidation Console.
  * Full rule tree inspection, verbatim evidence quote verification, and source-change invalidation.
  */
@@ -107,7 +107,7 @@ export const AdminRulesPage: React.FC = () => {
 
   const fetchRules = () => {
     setLoading(true);
-    let url = 'http://localhost:8000/api/v1/admin/rules';
+    let url = 'http://127.0.0.1:8005/api/v1/admin/rules';
     const params = new URLSearchParams();
     if (activeTab !== 'all') params.append('status', activeTab);
     if (selectedScheme !== 'all') params.append('scheme_id', selectedScheme);
@@ -128,7 +128,7 @@ export const AdminRulesPage: React.FC = () => {
   };
 
   const fetchSummary = () => {
-    fetch('http://localhost:8000/api/v1/admin/rules/summary')
+    fetch('http://127.0.0.1:8005/api/v1/admin/rules/summary')
       .then(res => res.json())
       .then(data => {
         if (data.ok) setSummary(data.data);
@@ -144,7 +144,7 @@ export const AdminRulesPage: React.FC = () => {
   const loadRuleDetail = (ruleId: string) => {
     setInspectRuleId(ruleId);
     setDetailLoading(true);
-    fetch(`http://localhost:8000/api/v1/admin/rules/${ruleId}`)
+    fetch(`http://127.0.0.1:8005/api/v1/admin/rules/${ruleId}`)
       .then(res => res.json())
       .then(data => {
         if (data.ok) {
@@ -164,7 +164,7 @@ export const AdminRulesPage: React.FC = () => {
     if (!inspectRuleId) return;
 
     setActionLoading(inspectRuleId);
-    fetch(`http://localhost:8000/api/v1/admin/rules/${inspectRuleId}/review`, {
+    fetch(`http://127.0.0.1:8005/api/v1/admin/rules/${inspectRuleId}/review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -197,7 +197,7 @@ export const AdminRulesPage: React.FC = () => {
 
   const simulateSourceChange = (versionId: string) => {
     setActionLoading(versionId);
-    fetch(`http://localhost:8000/api/v1/admin/rules/simulate-source-change?document_version_id=${encodeURIComponent(versionId)}&reason=annual_gazette_amendment`, {
+    fetch(`http://127.0.0.1:8005/api/v1/admin/rules/simulate-source-change?document_version_id=${encodeURIComponent(versionId)}&reason=annual_gazette_amendment`, {
       method: 'POST'
     })
       .then(res => res.json())
@@ -249,7 +249,7 @@ export const AdminRulesPage: React.FC = () => {
       }
     };
 
-    fetch('http://localhost:8000/api/v1/admin/rules', {
+    fetch('http://127.0.0.1:8005/api/v1/admin/rules', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1019,3 +1019,4 @@ export const AdminRulesPage: React.FC = () => {
     </div>
   );
 };
+

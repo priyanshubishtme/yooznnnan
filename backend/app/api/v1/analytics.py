@@ -18,6 +18,7 @@ router = APIRouter(prefix="/analytics", tags=["Privacy-Preserving Analytics"])
 
 
 @router.get("/overview")
+@router.get("/summary")
 async def get_analytics_overview(
     request: Request,
     db: AsyncSession = Depends(get_db)

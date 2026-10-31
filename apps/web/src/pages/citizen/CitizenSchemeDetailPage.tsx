@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Citizen Scheme Detail View with Interactive Document Checklist,
  * Human-Verified Eligibility Rules, and PDF Coordinate Evidence Viewer (Phase 8).
  */
@@ -79,7 +79,7 @@ export const CitizenSchemeDetailPage: React.FC = () => {
     setReminderSubmitting(true);
     setReminderStatus(null);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/reminders/subscribe', {
+      const res = await fetch('http://127.0.0.1:8005/api/v1/reminders/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,7 +128,7 @@ export const CitizenSchemeDetailPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/api/v1/schemes/${schemeId}`)
+    fetch(`http://127.0.0.1:8005/api/v1/schemes/${schemeId}`)
       .then(res => res.json())
       .then(data => {
         if (data.ok && data.data) setScheme(data.data);
@@ -488,3 +488,4 @@ export const CitizenSchemeDetailPage: React.FC = () => {
     </div>
   );
 };
+

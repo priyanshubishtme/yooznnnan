@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Freshness & Privacy-Preserving Telemetry Console (Phase 9 & Blueprint 11.11)
  *
  * Enforces:
@@ -60,8 +60,8 @@ export const AdminFreshnessPage: React.FC = () => {
     setLoading(true);
     try {
       const [freshRes, analRes] = await Promise.all([
-        fetch('http://127.0.0.1:8000/api/v1/admin/freshness'),
-        fetch('http://127.0.0.1:8000/api/v1/admin/analytics/summary')
+        fetch('http://127.0.0.1:8005/api/v1/admin/freshness'),
+        fetch('http://127.0.0.1:8005/api/v1/admin/analytics/summary')
       ]);
 
       const freshJson = await freshRes.json();
@@ -81,7 +81,7 @@ export const AdminFreshnessPage: React.FC = () => {
   }, []);
 
   const handleExportAudit = () => {
-    window.open(`http://127.0.0.1:8000/api/v1/admin/audit/export?format=${exportFormat}`, '_blank');
+    window.open(`http://127.0.0.1:8005/api/v1/admin/audit/export?format=${exportFormat}`, '_blank');
   };
 
   if (loading) {
@@ -283,3 +283,5 @@ export const AdminFreshnessPage: React.FC = () => {
     </div>
   );
 };
+
+

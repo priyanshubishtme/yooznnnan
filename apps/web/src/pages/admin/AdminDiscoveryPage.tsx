@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Discovery Jobs and APScheduler Telemetry View
  * Real-time dedicated single-instance APScheduler process tracking, run logs, and controls.
  */
@@ -34,8 +34,8 @@ export const AdminDiscoveryPage: React.FC = () => {
     setLoading(true);
     try {
       const [jobsRes, schedRes] = await Promise.all([
-        fetch('http://localhost:8000/api/v1/admin/discovery/jobs'),
-        fetch('http://localhost:8000/api/v1/admin/scheduler/status')
+        fetch('http://127.0.0.1:8005/api/v1/admin/discovery/jobs'),
+        fetch('http://127.0.0.1:8005/api/v1/admin/scheduler/status')
       ]);
 
       const jobsData = await jobsRes.json();
@@ -66,7 +66,7 @@ export const AdminDiscoveryPage: React.FC = () => {
     setActionLoading(action);
     setStatusMsg(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/scheduler/${action}`, {
+      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/scheduler/${action}`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -426,3 +426,4 @@ export const AdminDiscoveryPage: React.FC = () => {
     </div>
   );
 };
+

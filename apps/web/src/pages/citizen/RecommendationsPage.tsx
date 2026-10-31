@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Deterministic Recommendations Result Screen with 4 Status Tiers & Multi-Factor Ranking
  *
  * Enforces Blueprint Section 10.3 & Phase 7 Gate:
@@ -72,7 +72,7 @@ export const RecommendationsPage: React.FC = () => {
       const profile = savedAnswers ? JSON.parse(savedAnswers) : {};
 
       try {
-        const resp = await fetch('http://127.0.0.1:8000/api/v1/eligibility/evaluate', {
+        const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/evaluate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ profile })
@@ -589,3 +589,4 @@ export const RecommendationsPage: React.FC = () => {
     </div>
   );
 };
+

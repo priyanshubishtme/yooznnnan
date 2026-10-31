@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Console Overview Dashboard
  */
 
@@ -23,7 +23,7 @@ export const AdminOverviewPage: React.FC = () => {
   const [healthData, setHealthData] = useState<any>(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/health')
+    fetch('http://127.0.0.1:8005/health')
       .then(res => res.json())
       .then(data => {
         if (data.ok) setHealthData(data.data);
@@ -141,3 +141,4 @@ export const AdminOverviewPage: React.FC = () => {
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Scheme Side-by-Side Comparison Interface
  */
 
@@ -16,7 +16,7 @@ export const ComparePage: React.FC = () => {
   useEffect(() => {
     const fetchSchemes = async () => {
       try {
-        const resp = await fetch('http://127.0.0.1:8000/api/v1/schemes?limit=50');
+        const resp = await fetch('http://127.0.0.1:8005/api/v1/schemes?limit=50');
         if (resp.ok) {
           const json = await resp.json();
           setSchemes(json.data.schemes || []);
@@ -164,4 +164,5 @@ export const ComparePage: React.FC = () => {
     </div>
   );
 };
+
 

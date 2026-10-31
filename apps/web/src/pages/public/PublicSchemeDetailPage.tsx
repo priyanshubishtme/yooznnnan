@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Public Scheme Detail View with Full Guidance, Verification Provenance, and Portal Link
  */
 
@@ -27,7 +27,7 @@ export const PublicSchemeDetailPage: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:8000/api/v1/schemes/${schemeId}`)
+    fetch(`http://127.0.0.1:8005/api/v1/schemes/${schemeId}`)
       .then(res => {
         if (!res.ok) throw new Error(`Scheme not found (status ${res.status})`);
         return res.json();
@@ -184,3 +184,4 @@ export const PublicSchemeDetailPage: React.FC = () => {
     </div>
   );
 };
+

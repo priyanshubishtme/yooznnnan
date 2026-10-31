@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Professional Public Landing Page with Grounded RAG AI Assistant
  */
 
@@ -64,7 +64,7 @@ export const LandingPage: React.FC = () => {
     }
 
     try {
-      const resp = await fetch('http://127.0.0.1:8000/api/v1/chat', {
+      const resp = await fetch('http://127.0.0.1:8005/api/v1/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -663,3 +663,4 @@ export const LandingPage: React.FC = () => {
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Public Scheme Directory with Search, Filters, and Verified Evidence Badges
  */
 
@@ -21,7 +21,7 @@ export const PublicSchemesPage: React.FC = () => {
   const fetchSchemes = () => {
     setLoading(true);
     setError(null);
-    let url = 'http://localhost:8000/api/v1/schemes?limit=50';
+    let url = 'http://127.0.0.1:8005/api/v1/schemes?limit=50';
     if (selectedCategory !== 'all') url += `&category=${encodeURIComponent(selectedCategory)}`;
     if (selectedLevel !== 'all') url += `&level=${encodeURIComponent(selectedLevel)}`;
     if (searchTerm) url += `&q=${encodeURIComponent(searchTerm)}`;
@@ -41,7 +41,7 @@ export const PublicSchemesPage: React.FC = () => {
       })
       .catch(err => {
         console.warn('API fetch failed, falling back to local seed preview:', err);
-        setError('Could not connect to backend server. Make sure the API is running at http://localhost:8000.');
+        setError('Could not connect to backend server. Make sure the API is running at http://127.0.0.1:8005.');
         setLoading(false);
       });
   };
@@ -271,3 +271,4 @@ export const PublicSchemesPage: React.FC = () => {
     </div>
   );
 };
+

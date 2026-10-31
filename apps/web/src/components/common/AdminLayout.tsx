@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Protected Admin Console Layout Shell
  */
 
@@ -25,7 +25,7 @@ export const AdminLayout: React.FC = () => {
 
   useEffect(() => {
     // Health probe to backend API
-    fetch('http://localhost:8000/health')
+    fetch('http://127.0.0.1:8005/health')
       .then(res => res.json())
       .then(data => setApiHealthy(data?.ok && data?.data?.status === 'ok'))
       .catch(() => setApiHealthy(false));
@@ -192,3 +192,4 @@ export const AdminLayout: React.FC = () => {
     </div>
   );
 };
+

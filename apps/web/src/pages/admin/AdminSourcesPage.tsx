@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Source Registry & Compliance Gate View
  * Real-time compliance verification, policy review dialogs, and Run Now discovery.
  */
@@ -29,7 +29,7 @@ export const AdminSourcesPage: React.FC = () => {
 
   const fetchSources = () => {
     setLoading(true);
-    fetch('http://localhost:8000/api/v1/admin/sources')
+    fetch('http://127.0.0.1:8005/api/v1/admin/sources')
       .then(res => res.json())
       .then(data => {
         if (data.ok && Array.isArray(data.data)) {
@@ -51,7 +51,7 @@ export const AdminSourcesPage: React.FC = () => {
     setActionLoading(`run-${sourceId}`);
     setStatusMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/sources/${sourceId}/discover`, {
+      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/sources/${sourceId}/discover`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -80,7 +80,7 @@ export const AdminSourcesPage: React.FC = () => {
     setActionLoading(`toggle-${source.source_id}`);
     setStatusMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/sources/${source.source_id}/${endpoint}`, {
+      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/sources/${source.source_id}/${endpoint}`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -119,7 +119,7 @@ export const AdminSourcesPage: React.FC = () => {
     setActionLoading('submit-review');
     setStatusMessage(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/sources/${reviewSource.source_id}/review`, {
+      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/sources/${reviewSource.source_id}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -555,3 +555,4 @@ export const AdminSourcesPage: React.FC = () => {
     </div>
   );
 };
+

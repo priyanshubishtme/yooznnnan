@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Citizen Scheme Discovery View with Category Pills, Search & Real-Time Filtering
  */
 
@@ -23,7 +23,7 @@ export const CitizenDiscoverPage: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/v1/schemes?limit=50')
+    fetch('http://127.0.0.1:8005/api/v1/schemes?limit=50')
       .then(res => res.json())
       .then(data => {
         if (data.ok && Array.isArray(data.data)) {
@@ -250,3 +250,4 @@ export const CitizenDiscoverPage: React.FC = () => {
     </div>
   );
 };
+

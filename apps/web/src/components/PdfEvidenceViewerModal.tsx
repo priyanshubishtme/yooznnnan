@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PDF Evidence Coordinate Viewer Modal
  *
  * Enforces Blueprint Section 7.5 & Phase 8 Gate:
@@ -76,7 +76,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
     const fetchPageEvidence = async () => {
       setIsLoading(true);
       try {
-        const resp = await fetch(`http://127.0.0.1:8000/api/v1/evidence/${versionId}/${currentPage}`);
+        const resp = await fetch(`http://127.0.0.1:8005/api/v1/evidence/${versionId}/${currentPage}`);
         if (resp.ok) {
           const json = await resp.json();
           setEvidenceData(json.data);
@@ -292,7 +292,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
               >
                 {/* 150 DPI Rendered Page with High-Precision Highlights */}
                 <img
-                  src={`http://127.0.0.1:8000${evidenceData.image_url}`}
+                  src={`http://127.0.0.1:8005${evidenceData.image_url}`}
                   alt={`Official Document Page ${currentPage}`}
                   style={{
                     display: 'block',
@@ -402,4 +402,5 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
     </div>
   );
 };
+
 

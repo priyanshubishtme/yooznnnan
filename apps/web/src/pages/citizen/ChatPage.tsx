@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Grounded RAG Chat Interface with Interactive Citation Inspector & Visual Coordinate Highlighting
  *
  * Enforces Blueprint Section 9:
@@ -219,7 +219,7 @@ export const ChatPage: React.FC = () => {
         );
       }, 400);
 
-      const response = await fetch('http://127.0.0.1:8000/api/v1/chat', {
+      const response = await fetch('http://127.0.0.1:8005/api/v1/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -957,3 +957,4 @@ export const ChatPage: React.FC = () => {
     </div>
   );
 };
+

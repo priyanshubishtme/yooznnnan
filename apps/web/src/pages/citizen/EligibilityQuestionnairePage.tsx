@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Guided Eligibility Questionnaire with Dynamic Backend Questions,
  * Progressive Disclosure, and "Not Sure" Support
  *
@@ -62,7 +62,7 @@ export const EligibilityQuestionnairePage: React.FC = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const resp = await fetch('http://127.0.0.1:8000/api/v1/eligibility/questions');
+        const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/questions');
         if (resp.ok) {
           const json = await resp.json();
           setQuestions(json.data.questions || []);
@@ -124,7 +124,7 @@ export const EligibilityQuestionnairePage: React.FC = () => {
         }
       }
 
-      const resp = await fetch('http://127.0.0.1:8000/api/v1/eligibility/evaluate', {
+      const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profile: cleanProfile })
@@ -510,3 +510,4 @@ export const EligibilityQuestionnairePage: React.FC = () => {
     </div>
   );
 };
+

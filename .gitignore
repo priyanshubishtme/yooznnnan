@@ -57,6 +57,8 @@ data/debug/
 data/fetched/
 data/pdfs/
 data/*.lock
+data/*.log
+data/*.pid
 *.lock
 !package-lock.json
 !data/pdfs/.gitkeep
