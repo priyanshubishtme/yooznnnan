@@ -13,7 +13,7 @@ Preserving full product scope with zero feature deletion.
 | **Phase 2** | **Source Registry, Compliance Gate & Scheduler** | Phases 2 & 3 | **COMPLETED** | [x] Prohibited/pending source cannot run automatically, [x] Scheduler runs once, [x] Jobs idempotent, [x] Failures observable |
 | **Phase 3** | **Discovery, Fetching & Admin Review Console** | Phases 4 & 5 | **COMPLETED** | [x] New/changed/unchanged classified correctly on fixtures, [x] No candidate public/searchable before approval |
 | **Phase 4** | **PDF Ingestion & Coordinate Extraction** | Phase 6 | **COMPLETED** | [x] Every chunk keeps page and boxes, [x] Spot-checks pass, [x] One single shared ingestion path |
-| **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | *Pending* | [ ] Every active rule has verified quote & page, [ ] Source change disables rules until re-approved, [ ] 13 initial scheme records |
+| **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | **COMPLETED** | [x] Every active rule has verified quote & page, [x] Source change disables rules until re-approved, [x] 13 initial scheme records |
 | **Phase 6** | **Hybrid Retrieval & Groq RAG Chat** | Phases 8 & 9 | *Pending* | [ ] Only current verified versions retrieved, [ ] Zero hallucinated citation IDs, [ ] Unsupported questions refused, [ ] Final answer validated |
 | **Phase 7** | **Deterministic Eligibility & Ranking** | Phase 10 | *Pending* | [ ] 25 profiles match expected outcomes, [ ] Zero needs_review rules produce output, [ ] Three-valued logic & explainability |
 | **Phase 8** | **Citizen Application, PDF Evidence Viewer & 3D Experience** | Phase 11 | *Pending* | [ ] End-to-end journeys pass on mobile/desktop, [ ] Source chips open exact PDF highlight boxes, [ ] 3D landing page responsive |
@@ -21,6 +21,43 @@ Preserving full product scope with zero feature deletion.
 | **Phase 10** | **Evaluation, Security, Deployment & Demo** | Phase 14 | *Pending* | [ ] Full test suites pass, [ ] Security & dependency review, [ ] Rate limits active, [ ] Production deployment scripts verified |
 
 ---
+
+## Phase 5 Detail Checklist (Structured Schemes & Eligibility Rule Review) — Passed
+
+- [x] **13 Initial Scheme Records & Initial Modes (`registry/schemes.yaml`)**:
+  - All 13 initial schemes seeded with bilingual descriptions, level, ministry, category, and initial modes (`rules_and_rag`, `rag_and_rules`, `rag_only`).
+  - Core schemes with human-verified rules (`SCHEME-PM-KISAN`, `SCHEME-PM-JAY`, `SCHEME-PMAY-G`, `SCHEME-UK-OLD-AGE`) marked `rules_enabled=True`.
+  - Remaining verified schemes configured as `rag_only` awaiting human rule review, preserving strict trust separation.
+- [x] **Eligibility Rule Tree Schema & Validation (`backend/app/rules/schema.py`)**:
+  - Deterministic condition trees with `all` (AND), `any` (OR), and explicit `exceptions` (disqualification filters).
+  - Rich operators: `equals`, `not_equals`, `greater_than_or_equal`, `less_than_or_equal`, `between_inclusive` (with `min`/`max` validation), `in_list`, `is_true`, `is_false`.
+  - Mandatory evidence provenance models (`RuleSourceRef`): target `document_version_id`, 1-indexed `page_number`, and verbatim `quote`.
+  - Official external verification flags (`official_verification_required`) for conditions checked by government authority records.
+- [x] **Rule Service & Automated Invalidation Engine (`backend/app/rules/service.py`)**:
+  - `generate_logic_expression`: Generates human-readable Boolean logic formulas from AST condition trees.
+  - `create_rule`: Validates scheme, rule code uniqueness, target document version, and records dependency edges.
+  - `review_rule`: Human gatekeeper enforcing that active rules must have verbatim quote, page reference, and point to a valid, non-superseded document version.
+  - `invalidate_dependent_rules`: Triggered whenever a document version changes or is superseded; immediately transitions all dependent rules from `active` to `needs_review`, records an automated audit trail, and disables `scheme.rules_enabled` if no active rules remain.
+- [x] **Seeded Human-Verified Core Rules (`backend/app/rules/seed_rules.py`)**:
+  - 7 verified active rules seeded across PM-KISAN, PM-JAY, PMAY-G, and Uttarakhand Old Age Pension with exact gazette quotes and page numbers linked to verified document versions.
+- [x] **Admin Eligibility Rules API (`backend/app/api/v1/rules.py`)**:
+  - `GET /api/v1/admin/rules`: Filterable by scheme and status (`active`, `needs_review`, `draft`, `retired`), with pagination.
+  - `GET /api/v1/admin/rules/summary`: Live telemetry counts across rule statuses and scheme rule-readiness.
+  - `GET /api/v1/admin/rules/{rule_id}`: Full condition tree JSON, logic expression, dependency version, and review history.
+  - `POST /api/v1/admin/rules`: Draft new rules with verified source citations.
+  - `PUT /api/v1/admin/rules/{rule_id}`: Update rule criteria, auto-incrementing version and resetting status to `needs_review`.
+  - `POST /api/v1/admin/rules/{rule_id}/review`: Human review workflow (`approve`, `request_changes`, `retire`).
+  - `POST /api/v1/admin/rules/simulate-source-change`: Diagnostic endpoint for simulating source updates and verifying instant dependency invalidation.
+- [x] **Interactive Admin Frontend Console (`apps/web/src/pages/admin/AdminRulesPage.tsx`)**:
+  - Telemetry summary cards showing Total Rules, Active Rules, Needs Review alert counter, and Rule-Enabled schemes.
+  - Status filter tabs (`All`, `Needs Review`, `Active`, `Draft`, `Retired`) and Scheme selector dropdown.
+  - Rule cards with logic formula chips, verified verbatim gazette quote box, and dependency pills.
+  - Inspect & Review Modal: Displays condition tree JSON, logic expression, document version, review audit history, and decision submission form.
+  - "Simulate Source Update" button on cards to test invalidation gate live in the browser.
+  - Draft New Rule modal with condition builder and mandatory evidence fields.
+- [x] **Phase 5 Gate Verification**:
+  - Automated Pytest suite: 27/27 tests passing across all suites (`test_rules_and_invalidation.py`, `test_pdf_ingestion.py`, `test_discovery_and_review.py`, `test_compliance_and_scheduler.py`, `test_health.py`).
+  - Browser subagent completed end-to-end testing: navigated to `/admin/rules`, simulated source gazette change, verified automatic `needs_review` transition, inspected rule provenance, submitted human re-approval with notes, and restored rule to `active`. All 3 gate criteria satisfied.
 
 ## Phase 4 Detail Checklist (PDF Ingestion & Coordinate Extraction) — Passed
 

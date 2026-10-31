@@ -7,6 +7,7 @@ from backend.app.api.v1.sources import router as sources_router
 from backend.app.api.v1.discovery import router as discovery_router
 from backend.app.api.v1.review import router as review_router
 from backend.app.api.v1.documents import router as documents_router
+from backend.app.api.v1.rules import router as rules_router
 
 api_v1_router = APIRouter()
 
@@ -16,5 +17,6 @@ api_v1_router.include_router(sources_router)
 api_v1_router.include_router(discovery_router)
 api_v1_router.include_router(review_router)
 api_v1_router.include_router(documents_router)
+api_v1_router.include_router(rules_router)
 
 
