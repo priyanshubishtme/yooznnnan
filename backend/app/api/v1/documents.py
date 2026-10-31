@@ -348,3 +348,94 @@ async def get_page_debug_image(
         )
 
     return FileResponse(target_path, media_type="image/png")
+
+
+# -------------------------------------------------------------
+# Public Evidence & Coordinate Viewer Endpoints (Blueprint Section 7.5 & Phase 8)
+# -------------------------------------------------------------
+public_evidence_router = APIRouter(prefix="/evidence", tags=["Public Evidence & PDF Viewer"])
+
+
+@public_evidence_router.get("/{version_id}/{page_number}")
+async def get_evidence_page(
+    version_id: str,
+    page_number: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns page geometry, cryptographic hash, and highlight bounding boxes for PDF viewer."""
+    request_id = getattr(request.state, "request_id", "direct")
+
+    # Fetch version and document
+    res = await db.execute(
+        select(DocumentVersion, Document)
+        .join(Document, DocumentVersion.document_id == Document.id)
+        .where(DocumentVersion.id == version_id)
+    )
+    row = res.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Document version not found")
+    version, document = row
+
+    # Fetch page geometry
+    p_res = await db.execute(
+        select(Page).where(
+            Page.document_version_id == version_id,
+            Page.page_number == page_number
+        )
+    )
+    page = p_res.scalar_one_or_none()
+
+    # Fetch bounding boxes on this page
+    boxes_res = await db.execute(
+        select(ChunkBox, Chunk).join(Chunk, ChunkBox.chunk_id == Chunk.id).where(
+            Chunk.document_version_id == version_id,
+            Chunk.page_number == page_number
+        )
+    )
+    box_rows = boxes_res.all()
+
+    boxes_list = [
+        {
+            "x0": b.x0,
+            "y0": b.y0,
+            "x1": b.x1,
+            "y1": b.y1,
+            "text_snippet": b.text_snippet,
+            "chunk_id": chk.id,
+            "section_title": chk.section_title
+        }
+        for b, chk in box_rows
+    ]
+
+    return success_response(
+        data={
+            "version_id": version.id,
+            "document_id": document.id,
+            "document_title": document.title,
+            "document_type": document.document_type,
+            "binary_sha256": version.binary_sha256,
+            "page_number": page_number,
+            "total_pages": version.page_count,
+            "page_geometry": {
+                "width": page.width if page else 595.0,
+                "height": page.height if page else 842.0,
+                "rotation": page.rotation if page else 0
+            },
+            "image_url": f"/api/v1/evidence/{version_id}/{page_number}/image",
+            "boxes_count": len(boxes_list),
+            "boxes": boxes_list
+        },
+        request_id=request_id
+    )
+
+
+@public_evidence_router.get("/{version_id}/{page_number}/image")
+async def get_evidence_page_image(
+    version_id: str,
+    page_number: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Serves the rendered 150 DPI page image with visual coordinate highlights."""
+    return await get_page_debug_image(version_id=version_id, page_number=page_number, db=db)
+

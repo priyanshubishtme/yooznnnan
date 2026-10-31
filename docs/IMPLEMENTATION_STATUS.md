@@ -16,9 +16,49 @@ Preserving full product scope with zero feature deletion.
 | **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | **COMPLETED** | [x] Every active rule has verified quote & page, [x] Source change disables rules until re-approved, [x] 13 initial scheme records |
 | **Phase 6** | **Hybrid Retrieval & Groq RAG Chat** | Phases 8 & 9 | **COMPLETED** | [x] Only current verified versions retrieved, [x] Zero hallucinated citation IDs, [x] Unsupported questions refused, [x] Final answer validated |
 | **Phase 7** | **Deterministic Eligibility & Ranking** | Phase 10 | **COMPLETED** | [x] 25 profiles match expected outcomes, [x] Zero needs_review rules produce output, [x] Three-valued logic & explainability |
-| **Phase 8** | **Citizen Application, PDF Evidence Viewer & 3D Experience** | Phase 11 | *Pending* | [ ] End-to-end journeys pass on mobile/desktop, [ ] Source chips open exact PDF highlight boxes, [ ] 3D landing page responsive |
+| **Phase 8** | **Citizen Application, PDF Evidence Viewer & 3D Experience** | Phase 11 | **COMPLETED** | [x] End-to-end journeys pass on mobile/desktop, [x] Source chips open exact PDF highlight boxes, [x] 3D landing page responsive |
 | **Phase 9** | **PWA, Offline, Voice, My Schemes & Notifications** | Phases 12 & 13 | *Pending* | [ ] Saved schemes open offline, [ ] Chat/eligibility network-only, [ ] Voice text fallback, [ ] Verified email unsubscribe works |
 | **Phase 10** | **Evaluation, Security, Deployment & Demo** | Phase 14 | *Pending* | [ ] Full test suites pass, [ ] Security & dependency review, [ ] Rate limits active, [ ] Production deployment scripts verified |
+
+---
+
+## Phase 8 Detail Checklist (Citizen Application, PDF Evidence Viewer & 3D Experience) — Passed
+
+- [x] **Interactive 3D Civic Experience Hero Visual (`apps/web/src/components/CivicEmblem3D.tsx`)**:
+  - Implements a modern Three.js canvas featuring a golden 24-spoke Dharma Chakra with concentric hub rings and spokes.
+  - Orbiting tricolor civic particle constellation (India saffron `#FF9933`, white `#FFFFFF`, India green `#128807`) undulating in 3D orbit.
+  - Interactive mouse tracking / pointer tilting with spring-damped easing for tactile responsiveness.
+  - Dynamic responsive resize handler and memory cleanup on unmount (`geometry.dispose()`, `material.dispose()`, `renderer.dispose()`).
+  - Integrated into the Hero section of `LandingPage.tsx` in a clean 2-column responsive layout.
+- [x] **Grounded PDF Evidence Coordinate Viewer (`apps/web/src/components/PdfEvidenceViewerModal.tsx`)**:
+  - **Single Shared Viewer (Blueprint Section 7.5 & Phase 8 Gate)**: Opens directly from any source chip, citation reference, or statutory rule quote.
+  - Dynamic page rendering from backend (`GET /api/v1/evidence/{version_id}/{page_number}/image`), serving 150 DPI official gazette page images with PyMuPDF saffron bounding box highlights.
+  - Visual coordinate highlights overlaid directly onto official gazette text.
+  - Cryptographic SHA-256 binary digest verification badge for document provenance.
+  - Multi-page navigation (previous / next page controls with boundary guards).
+  - Zoom in (`+25%`), Zoom out (`-25%`), and 100% Reset controls with smooth scroll pan container.
+  - Collapsible coordinate drawer showing page dimensions, total highlights, box types (heading, paragraph, table), and point coordinates `[x0, y0, x1, y1]`.
+- [x] **Public Evidence & Coordinate API Endpoints (`backend/app/api/v1/documents.py`, `public_evidence_router`)**:
+  - `GET /api/v1/evidence/{version_id}/{page_number}`: Returns page metadata, width, height, rotation, SHA-256 digest, and all page bounding boxes.
+  - `GET /api/v1/evidence/{version_id}/{page_number}/image`: Generates on-demand 150 DPI page image with visual saffron highlight overlays.
+  - Registered in master router `backend/app/api/v1/router.py`.
+- [x] **Scheme Detail Upgrades with Active Rules & Evidence (`CitizenSchemeDetailPage.tsx`, `backend/app/api/v1/schemes.py`)**:
+  - `GET /api/v1/schemes/{scheme_id}` enriched with `active_rules` array returning rule code, logic formula, verbatim quote, page reference, and `document_version_id`.
+  - Clickable page pills (`Page {r.page_reference} (Highlight)`) opening `PdfEvidenceViewerModal`.
+  - Interactive document checklist with real-time progress indicator and localStorage persistence.
+  - Verified gazette list with immutable version numbers and SHA-256 hashes.
+- [x] **Citizen Discover Directory Upgrades (`CitizenDiscoverPage.tsx`)**:
+  - Live search filter across scheme names, ministries, categories, and financial benefits.
+  - Category filter pills (All, Agriculture, Scholarships, Pension, Housing, Health).
+  - Central vs. State jurisdiction badges and Rule-Enabled tags.
+  - Direct links to Eligibility questionnaire, Grounded RAG Chat, and Scheme Details.
+- [x] **Grounded RAG Assistant & Chat Integration (`LandingPage.tsx`, `ChatPage.tsx`)**:
+  - `LandingPage.tsx`: Wired to `POST /api/v1/chat`, citation cards clickable to open `PdfEvidenceViewerModal`.
+  - `ChatPage.tsx`: Citation Inspector enhanced with "Open Full PDF Highlight Viewer" button launching `PdfEvidenceViewerModal`.
+- [x] **Phase 8 Gate Verification**:
+  - Production build (`npm run build` in `apps/web`) passed in 972ms with **zero TypeScript errors**.
+  - All **39/39 backend Pytest tests passed**.
+  - Live API testing verified: Schemes list (200), Scheme details with rules (200), Evidence metadata (200), Evidence image rendering (200, 121KB PNG), Grounded RAG chat (200, 2 citations), Deterministic evaluation (200).
 
 ---
 

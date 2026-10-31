@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Professional Public Landing Page with Grounded RAG AI Assistant
  */
 
@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { CitationReference } from '../../types';
+import { CivicEmblem3D } from '../../components/CivicEmblem3D';
+import { PdfEvidenceViewerModal } from '../../components/PdfEvidenceViewerModal';
 
 export const LandingPage: React.FC = () => {
   const { t, language } = useLanguage();
@@ -31,6 +33,13 @@ export const LandingPage: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [evidenceModal, setEvidenceModal] = useState<{
+    versionId: string;
+    pageNumber: number;
+    title: string;
+    quote?: string;
+  } | null>(null);
+
   const [chatResponse, setChatResponse] = useState<{
     answer: string;
     citations: CitationReference[];
@@ -59,7 +68,7 @@ export const LandingPage: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: q,
+          query: q,
           language: language,
           session_id: 'landing-rag-session'
         })
@@ -70,8 +79,14 @@ export const LandingPage: React.FC = () => {
         const data = json.data || json;
         setChatResponse({
           answer: data.answer || data.content,
-          citations: data.citations || [],
-          badge: data.evidence_badge || 'STRONG'
+          citations: (data.citations || []).map((c: any) => ({
+            chunk_id: c.chunk_id,
+            document_version_id: c.document_version_id,
+            page_number: c.page_number,
+            document_title: c.document_title,
+            quote_snippet: c.quote || c.quote_snippet
+          })),
+          badge: data.evidence_level || data.evidence_badge || 'STRONG'
         });
         setChatLoading(false);
         return;
@@ -89,7 +104,7 @@ export const LandingPage: React.FC = () => {
         : 'Under PM-KISAN, Rs. 6,000 per year is provided in three equal installments to eligible landholding farmer families. Institutional landholders and income tax payers are excluded.';
       cits = [{
         chunk_id: 'chk-pmkisan-01',
-        document_version_id: 'doc-pmkisan-v1',
+        document_version_id: 'ver-doc-pmkisan-gu-v1',
         page_number: 3,
         document_title: 'PM-KISAN Operational Guidelines 2024',
         quote_snippet: 'Under PM-KISAN, financial assistance of Rs. 6000 per annum is provided to all landholding farmer families with cultivable landholding in their names.'
@@ -100,7 +115,7 @@ export const LandingPage: React.FC = () => {
         : 'Uttarakhand Old Age Pension Scheme provides Rs. 1,500 per month directly via DBT to eligible BPL senior citizens aged 60 and above.';
       cits = [{
         chunk_id: 'chk-uk-01',
-        document_version_id: 'doc-ukpension-v1',
+        document_version_id: 'ver-c1056d37db98',
         page_number: 2,
         document_title: 'Uttarakhand Social Welfare Rules 2024',
         quote_snippet: 'Senior citizens aged 60+ belonging to Below Poverty Line families are entitled to monthly pension benefits deposited directly via DBT.'
@@ -111,7 +126,7 @@ export const LandingPage: React.FC = () => {
         : `Regarding your query: In adherence to zero-hallucination policy, Yojana Sahayak retrieves facts strictly from verified government gazettes and guidelines. Explore the directory or open chat for full details.`;
       cits = [{
         chunk_id: 'chk-general-01',
-        document_version_id: 'doc-seed-v1',
+        document_version_id: 'ver-doc-pmkisan-gu-v1',
         page_number: 1,
         document_title: 'Ministry Official Gazette 2024',
         quote_snippet: 'All welfare schemes operate under published operational guidelines and gazette notifications.'
@@ -156,132 +171,158 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem', paddingBottom: '4rem' }}>
-      {/* Professional Civic Hero Header */}
+      {/* Professional Civic Hero Header with Interactive 3D Emblem */}
       <section
         style={{
-          padding: '3rem 0 2rem 0',
+          padding: '2.5rem 0 2rem 0',
           borderBottom: '1px solid var(--border-subtle)',
           background: 'var(--bg-surface)'
         }}
       >
-        <div className="container" style={{ maxWidth: '960px', margin: '0 auto', textAlign: 'center' }}>
+        <div className="container" style={{ maxWidth: '1080px', margin: '0 auto' }}>
           <div
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 12px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-primary-light)',
-              color: 'var(--accent-primary)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              marginBottom: '1rem',
-              border: '1px solid rgba(16, 185, 129, 0.25)'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: '2.5rem',
+              alignItems: 'center'
             }}
           >
-            <ShieldCheck size={15} />
-            <span>{language === 'hi' ? '100% सत्यापित सरकारी दिशानिर्देश' : '100% Grounded Official Evidence'}</span>
-          </div>
-
-          <h1
-            style={{
-              fontSize: 'clamp(2rem, 4vw, 2.75rem)',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2
-            }}
-          >
-            {language === 'hi'
-              ? 'सरकारी योजनाएं खोजें और अपनी पात्रता जानें'
-              : 'Find Government Welfare Schemes You Are Eligible For'}
-          </h1>
-
-          <p
-            style={{
-              fontSize: '1.05rem',
-              color: 'var(--text-secondary)',
-              maxWidth: '680px',
-              margin: '1rem auto 0 auto',
-              lineHeight: 1.6
-            }}
-          >
-            {language === 'hi'
-              ? 'केंद्रीय एवं राज्य सरकार की कल्याणकारी योजनाओं की प्रामाणिक जानकारी, सीधे आधिकारिक नियमों और राजपत्रों से।'
-              : 'Direct guidance retrieved from verified ministry circulars and gazette notifications. Clear rules, no guesswork.'}
-          </p>
-
-          {/* Quick Search Bar */}
-          <form
-            onSubmit={handleSearch}
-            style={{
-              display: 'flex',
-              gap: '8px',
-              maxWidth: '620px',
-              margin: '2rem auto 0 auto'
-            }}
-          >
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search
-                size={18}
+            {/* Hero Text & Controls */}
+            <div>
+              <div
                 style={{
-                  position: 'absolute',
-                  left: '14px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)'
-                }}
-              />
-              <input
-                type="text"
-                className="input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  language === 'hi'
-                    ? 'योजना का नाम खोजें (जैसे पीएम-किसान, पेंशन, छात्रवृत्ति)...'
-                    : 'Search scheme by name or benefit (e.g. Kisan, Pension, Scholarship)...'
-                }
-                style={{
-                  paddingLeft: '42px',
-                  height: '46px',
-                  fontSize: '0.92rem',
-                  borderRadius: 'var(--radius-md)'
-                }}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ height: '46px', padding: '0 22px' }}>
-              {language === 'hi' ? 'खोजें' : 'Search'}
-            </button>
-          </form>
-
-          {/* Category Chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginTop: '1rem' }}>
-            {[
-              { label: language === 'hi' ? '🌾 किसान योजनाएं' : '🌾 Agriculture & Farmers', q: 'kisan' },
-              { label: language === 'hi' ? '🎓 छात्रवृत्ति व शिक्षा' : '🎓 Scholarships', q: 'scholarship' },
-              { label: language === 'hi' ? '👵 वृद्धावस्था पेंशन' : '👵 Senior Citizens', q: 'pension' },
-              { label: language === 'hi' ? '🏠 आवास सहायता' : '🏠 Housing (Awas)', q: 'awas' }
-            ].map((c, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => navigate(`/schemes?q=${encodeURIComponent(c.q)}`)}
-                style={{
-                  padding: '5px 12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 12px',
                   borderRadius: 'var(--radius-full)',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-secondary)',
+                  background: 'var(--accent-primary-light)',
+                  color: 'var(--accent-primary)',
                   fontSize: '0.8rem',
-                  fontWeight: 500,
-                  cursor: 'pointer'
+                  fontWeight: 600,
+                  marginBottom: '1rem',
+                  border: '1px solid rgba(16, 185, 129, 0.25)'
                 }}
               >
-                {c.label}
-              </button>
-            ))}
+                <ShieldCheck size={15} />
+                <span>{language === 'hi' ? '100% सत्यापित सरकारी दिशानिर्देश' : '100% Grounded Official Evidence'}</span>
+              </div>
+
+              <h1
+                style={{
+                  fontSize: 'clamp(2rem, 3.8vw, 2.75rem)',
+                  fontWeight: 800,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.2
+                }}
+              >
+                {language === 'hi'
+                  ? 'सरकारी योजनाएं खोजें और अपनी पात्रता जानें'
+                  : 'Find Government Welfare Schemes You Are Eligible For'}
+              </h1>
+
+              <p
+                style={{
+                  fontSize: '1rem',
+                  color: 'var(--text-secondary)',
+                  margin: '1rem 0 0 0',
+                  lineHeight: 1.6
+                }}
+              >
+                {language === 'hi'
+                  ? 'केंद्रीय एवं राज्य सरकार की कल्याणकारी योजनाओं की प्रामाणिक जानकारी, सीधे आधिकारिक नियमों और राजपत्रों से।'
+                  : 'Direct guidance retrieved from verified ministry circulars and gazette notifications. Zero hallucination guarantee.'}
+              </p>
+
+              {/* Quick Search Bar */}
+              <form
+                onSubmit={handleSearch}
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  maxWidth: '540px',
+                  margin: '1.5rem 0 0 0'
+                }}
+              >
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search
+                    size={18}
+                    style={{
+                      position: 'absolute',
+                      left: '14px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-muted)'
+                    }}
+                  />
+                  <input
+                    type="text"
+                    className="input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={
+                      language === 'hi'
+                        ? 'योजना का नाम खोजें (जैसे पीएम-किसान, पेंशन, छात्रवृत्ति)...'
+                        : 'Search scheme by name or benefit (e.g. Kisan, Pension, Scholarship)...'
+                    }
+                    style={{
+                      paddingLeft: '42px',
+                      height: '46px',
+                      fontSize: '0.92rem',
+                      borderRadius: 'var(--radius-md)'
+                    }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ height: '46px', padding: '0 22px' }}>
+                  {language === 'hi' ? 'खोजें' : 'Search'}
+                </button>
+              </form>
+
+              {/* Category Chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '1rem' }}>
+                {[
+                  { label: language === 'hi' ? '🌾 किसान योजनाएं' : '🌾 Agriculture & Farmers', q: 'kisan' },
+                  { label: language === 'hi' ? '🎓 छात्रवृत्ति व शिक्षा' : '🎓 Scholarships', q: 'scholarship' },
+                  { label: language === 'hi' ? '👵 वृद्धावस्था पेंशन' : '👵 Senior Citizens', q: 'pension' },
+                  { label: language === 'hi' ? '🏠 आवास सहायता' : '🏠 Housing (Awas)', q: 'awas' }
+                ].map((c, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => navigate(`/schemes?q=${encodeURIComponent(c.q)}`)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3D Civic Experience Hero Visual */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'radial-gradient(circle at center, rgba(37, 99, 235, 0.08) 0%, transparent 70%)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1rem'
+              }}
+            >
+              <CivicEmblem3D height={340} />
+            </div>
           </div>
         </div>
       </section>
@@ -463,18 +504,44 @@ export const LandingPage: React.FC = () => {
                   {chatResponse.citations.map((c, idx) => (
                     <div
                       key={idx}
+                      onClick={() => {
+                        if (c.document_version_id) {
+                          setEvidenceModal({
+                            versionId: c.document_version_id,
+                            pageNumber: c.page_number,
+                            title: c.document_title,
+                            quote: c.quote_snippet
+                          });
+                        }
+                      }}
                       style={{
-                        padding: '8px 12px',
+                        padding: '10px 14px',
                         borderRadius: 'var(--radius-sm)',
                         background: 'var(--bg-card)',
                         border: '1px solid var(--border-subtle)',
-                        fontSize: '0.8rem'
+                        fontSize: '0.8rem',
+                        cursor: c.document_version_id ? 'pointer' : 'default',
+                        transition: 'border-color var(--transition-fast)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (c.document_version_id) (e.currentTarget.style.borderColor = 'var(--accent-primary)');
+                      }}
+                      onMouseLeave={(e) => {
+                        if (c.document_version_id) (e.currentTarget.style.borderColor = 'var(--border-subtle)');
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        <FileText size={14} color="var(--accent-blue)" />
-                        <span>{c.document_title}</span>
-                        <span style={{ color: 'var(--accent-primary)' }}>• Page {c.page_number}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <FileText size={14} color="var(--accent-blue)" />
+                          <span>{c.document_title}</span>
+                          <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>• Page {c.page_number}</span>
+                        </div>
+                        {c.document_version_id && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
+                            <Layers size={12} />
+                            {language === 'hi' ? 'दस्तावेज़ हाइलाइट देखें' : 'View PDF Highlight'} →
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontStyle: 'italic', color: 'var(--text-secondary)', marginTop: '4px', fontSize: '0.78rem' }}>
                         "{c.quote_snippet}"
@@ -582,6 +649,17 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Grounded PDF Evidence Viewer Modal */}
+      {evidenceModal && (
+        <PdfEvidenceViewerModal
+          versionId={evidenceModal.versionId}
+          initialPage={evidenceModal.pageNumber}
+          documentTitle={evidenceModal.title}
+          quoteSnippet={evidenceModal.quote}
+          onClose={() => setEvidenceModal(null)}
+        />
+      )}
     </div>
   );
 };

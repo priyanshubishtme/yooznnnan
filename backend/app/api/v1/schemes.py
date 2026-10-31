@@ -146,5 +146,28 @@ async def get_scheme_detail(
     ]
     data["verified_documents"] = verified_docs
 
+    # Active human-verified eligibility rules with official page citations
+    from backend.app.db.models import EligibilityRule, RuleDocumentDependency
+    rules_res = await db.execute(
+        select(EligibilityRule).where(
+            EligibilityRule.scheme_id == scheme_id,
+            EligibilityRule.status == "active"
+        )
+    )
+    active_rules = []
+    for r in rules_res.scalars().all():
+        dep_res = await db.execute(select(RuleDocumentDependency).where(RuleDocumentDependency.rule_id == r.id))
+        dep = dep_res.scalars().first()
+        active_rules.append({
+            "id": r.id,
+            "rule_code": r.rule_code,
+            "version": r.version,
+            "logic_expression": r.logic_expression,
+            "evidence_quote": r.evidence_quote,
+            "page_reference": r.page_reference,
+            "document_version_id": dep.document_version_id if dep else None
+        })
+    data["active_rules"] = active_rules
+
     return success_response(data=data, request_id=request_id)
 

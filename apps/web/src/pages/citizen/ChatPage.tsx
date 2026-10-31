@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { ChatMessage, CitationReference } from '../../types';
+import { PdfEvidenceViewerModal } from '../../components/PdfEvidenceViewerModal';
 
 export const ChatPage: React.FC = () => {
   const { language, t } = useLanguage();
@@ -37,6 +38,7 @@ export const ChatPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingStage, setLoadingStage] = useState<string>('');
   const [selectedCitation, setSelectedCitation] = useState<CitationReference | null>(null);
+  const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
   const [selectedSchemeFilter, setSelectedSchemeFilter] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -728,6 +730,30 @@ export const ChatPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Open Full Document Highlight Button */}
+          {selectedCitation.document_version_id && (
+            <button
+              type="button"
+              onClick={() => setShowPdfModal(true)}
+              className="btn btn-primary"
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                fontSize: '0.82rem',
+                padding: '0.65rem',
+                fontWeight: 600,
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <Layers size={15} />
+              <span>{language === 'hi' ? 'पूर्ण आधिकारिक दस्तावेज़ पृष्ठ देखें' : 'Open Full PDF Highlight Viewer'}</span>
+              <ExternalLink size={14} />
+            </button>
+          )}
+
           {/* Coordinate Box Readouts */}
           {selectedCitation.boxes && selectedCitation.boxes.length > 0 && (
             <div>
@@ -781,6 +807,17 @@ export const ChatPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Grounded PDF Evidence Viewer Modal */}
+      {showPdfModal && selectedCitation && selectedCitation.document_version_id && (
+        <PdfEvidenceViewerModal
+          versionId={selectedCitation.document_version_id}
+          initialPage={selectedCitation.page_number}
+          documentTitle={selectedCitation.document_title}
+          quoteSnippet={selectedCitation.quote || selectedCitation.quote_snippet}
+          onClose={() => setShowPdfModal(false)}
+        />
       )}
     </div>
   );
