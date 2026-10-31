@@ -12,7 +12,7 @@ Preserving full product scope with zero feature deletion.
 | **Phase 1** | **Foundation and Design System** | Phases 0 & 1 | **COMPLETED** | [x] Backend starts, [x] Frontend starts, [x] DB migrates from empty, [x] No secrets committed, [x] All public, citizen & admin routes navigable |
 | **Phase 2** | **Source Registry, Compliance Gate & Scheduler** | Phases 2 & 3 | **COMPLETED** | [x] Prohibited/pending source cannot run automatically, [x] Scheduler runs once, [x] Jobs idempotent, [x] Failures observable |
 | **Phase 3** | **Discovery, Fetching & Admin Review Console** | Phases 4 & 5 | **COMPLETED** | [x] New/changed/unchanged classified correctly on fixtures, [x] No candidate public/searchable before approval |
-| **Phase 4** | **PDF Ingestion & Coordinate Extraction** | Phase 6 | *Pending* | [ ] Every chunk keeps page and boxes, [ ] Spot-checks pass, [ ] One single shared ingestion path |
+| **Phase 4** | **PDF Ingestion & Coordinate Extraction** | Phase 6 | **COMPLETED** | [x] Every chunk keeps page and boxes, [x] Spot-checks pass, [x] One single shared ingestion path |
 | **Phase 5** | **Structured Schemes & Eligibility Rule Review** | Phase 7 | *Pending* | [ ] Every active rule has verified quote & page, [ ] Source change disables rules until re-approved, [ ] 13 initial scheme records |
 | **Phase 6** | **Hybrid Retrieval & Groq RAG Chat** | Phases 8 & 9 | *Pending* | [ ] Only current verified versions retrieved, [ ] Zero hallucinated citation IDs, [ ] Unsupported questions refused, [ ] Final answer validated |
 | **Phase 7** | **Deterministic Eligibility & Ranking** | Phase 10 | *Pending* | [ ] 25 profiles match expected outcomes, [ ] Zero needs_review rules produce output, [ ] Three-valued logic & explainability |
@@ -21,6 +21,42 @@ Preserving full product scope with zero feature deletion.
 | **Phase 10** | **Evaluation, Security, Deployment & Demo** | Phase 14 | *Pending* | [ ] Full test suites pass, [ ] Security & dependency review, [ ] Rate limits active, [ ] Production deployment scripts verified |
 
 ---
+
+## Phase 4 Detail Checklist (PDF Ingestion & Coordinate Extraction) — Passed
+
+- [x] **Point-Accurate Coordinate Extractor (`backend/app/ingest/extractor.py`)**:
+  - Built with PyMuPDF (`pymupdf`). Extracts page geometry (`width`, `height`, `rotation`), digital text layer, and word-level bounding boxes.
+  - Merges words into line-level bounding boxes with exact PDF points `[x0, y0, x1, y1]` (72 points/inch relative to page origin `[0, 0]`).
+  - Detects OCR requirement flag when pages are purely image scans without digital font glyphs.
+- [x] **Strict Page-Bounded Chunker (`backend/app/ingest/chunker.py`)**:
+  - Enforces Blueprint Section 7.2: Chunks **NEVER span across page boundaries** to guarantee zero-ambiguity PDF citation opening.
+  - Targets 250-400 tokens per chunk (~150-300 words), detects section titles/headers, and generates deterministic chunk IDs (`chk-{version_id}-p{page:03d}-{idx:02d}`).
+  - Maps every constituent line bounding box directly into `ChunkBoxDTO` coordinates with text snippets.
+- [x] **Diagnostic Coordinate Visualizer & Spot-Check Renderer (`backend/app/ingest/diagnostics.py`)**:
+  - Renders pages to 150 DPI PNG images and computes coordinate scaling factor (`pixels / points`).
+  - Overlays semi-transparent saffron/gold highlights (`fill=(250, 204, 21, 70)`) and solid saffron borders (`outline=(217, 119, 6, 220)`) directly over stored bounding boxes.
+  - Produces verifiable spot-check artifacts saved to `data/debug/{version_id}_p{page}_annotated.png` for human QA.
+- [x] **Single Shared Ingestion Pipeline (`backend/app/ingest/service.py`)**:
+  - Enforces Phase 4 Gate Requirement 3: Scraper-discovered documents, manual PDF uploads, and seed files all flow through the exact same `pdf_ingestion_service.ingest_document_version(db, version_id)`.
+  - Atomically records `Page`, `Chunk`, and `ChunkBox` rows and records an immutable `AuditEvent` (`document_version_ingested`).
+- [x] **Admin Documents & Ingestion API (`backend/app/api/v1/documents.py`)**:
+  - `GET /api/v1/admin/documents`: Lists documents and versions with chunk and page counts.
+  - `POST /api/v1/admin/documents/{version_id}/ingest`: Triggers on-demand coordinate extraction and chunking.
+  - `POST /api/v1/admin/documents/upload`: Multipart PDF upload route feeding directly into the shared pipeline.
+  - `GET /api/v1/admin/documents/{version_id}/pages`: Returns page geometry, dimensions, rotation, word count, and OCR status.
+  - `GET /api/v1/admin/documents/{version_id}/chunks`: Returns chunks with token counts and constituent bounding boxes.
+  - `GET /api/v1/admin/documents/{version_id}/pages/{page}/debug-image`: Serves annotated spot-check image.
+- [x] **Interactive Admin Frontend Console (`apps/web/src/pages/admin/AdminDocumentsPage.tsx`)**:
+  - Document table with live status badges (`ingested`, `verified`, `pending_review`), page counts, chunk counts, and SHA-256 fingerprints.
+  - Ingestion trigger button with real-time feedback toast.
+  - Modal Coordinate & Chunk Inspector with 3 tabs:
+    - *Extracted Page-Bounded Chunks*: Live chunk list with token counts and `[x0, y0, x1, y1]` point coordinate pills.
+    - *Diagnostic Coordinate Spot-Check*: High-res page visualizer displaying rendered PDF with saffron highlight boxes overlaid.
+    - *Extracted Pages*: Page dimensions, word count, and digital text layer status.
+  - Manual PDF upload dialog with scheme selector, title, type, and dropzone.
+- [x] **Phase 4 Gate Verification**:
+  - Pytest suite: 22/22 tests passing across all suites (`test_pdf_ingestion.py`, `test_discovery_and_review.py`, `test_compliance_and_scheduler.py`, `test_health.py`).
+  - Browser subagent completed end-to-end testing: loaded documents table, executed live ingestion, inspected page-bounded chunks and bounding boxes, verified diagnostic spot-check image overlay, and checked manual upload modal. All 3 gate criteria satisfied.
 
 ## Phase 3 Detail Checklist (Discovery, Fetching & Admin Review Console) — Passed
 

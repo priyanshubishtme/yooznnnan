@@ -273,14 +273,15 @@ async def test_no_candidate_public_before_approval(client):
 
     # 2. Add an unapproved pending candidate
     cand_id = f"cand-unapproved-{uuid.uuid4().hex[:6]}"
+    unapproved_sha = f"secret_sha_{uuid.uuid4().hex[:10]}"
     async with AsyncSessionLocal() as session:
         unapproved_cand = ResourceCandidate(
             id=cand_id,
             source_id="SRC-UK-SOCIAL-WELFARE",
-            canonical_url="https://socialwelfare.uk.gov.in/secret_draft.pdf",
-            original_url="https://socialwelfare.uk.gov.in/secret_draft.pdf",
+            canonical_url=f"https://socialwelfare.uk.gov.in/secret_draft_{uuid.uuid4().hex[:4]}.pdf",
+            original_url=f"https://socialwelfare.uk.gov.in/secret_draft_{uuid.uuid4().hex[:4]}.pdf",
             content_type="application/pdf",
-            binary_sha256="secret_sha256_unapproved",
+            binary_sha256=unapproved_sha,
             title="Secret Draft Pension Criteria",
             classification="new_resource",
             review_status="pending_review",
@@ -289,9 +290,15 @@ async def test_no_candidate_public_before_approval(client):
         session.add(unapproved_cand)
         await session.commit()
 
-    # 3. Query public scheme detail again; confirm the unapproved candidate is NOT exposed
-    res2 = await client.get(f"/api/v1/schemes/{scheme_id}")
-    assert res2.status_code == 200
-    data2 = res2.json()["data"]
-    doc_hashes = [d["binary_sha256"] for d in data2.get("verified_documents", [])]
-    assert "secret_sha256_unapproved" not in doc_hashes
+    try:
+        # 3. Query public scheme detail again; confirm the unapproved candidate is NOT exposed
+        res2 = await client.get(f"/api/v1/schemes/{scheme_id}")
+        assert res2.status_code == 200
+        data2 = res2.json()["data"]
+        doc_hashes = [d["binary_sha256"] for d in data2.get("verified_documents", [])]
+        assert unapproved_sha not in doc_hashes
+    finally:
+        from sqlalchemy import delete
+        async with AsyncSessionLocal() as session:
+            await session.execute(delete(ResourceCandidate).where(ResourceCandidate.id == cand_id))
+            await session.commit()
