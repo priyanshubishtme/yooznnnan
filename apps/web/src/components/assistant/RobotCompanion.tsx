@@ -49,6 +49,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCitizenStore } from '../../utils/citizenStore';
 import { useAudioWaveform } from '../../hooks/useAudioWaveform';
 import { PdfEvidenceViewerModal } from '../PdfEvidenceViewerModal';
+import './RobotCompanion.css';
 
 export type AssistantState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'error';
 
@@ -204,7 +205,7 @@ export const RobotCompanion: React.FC = () => {
   useEffect(() => {
     const checkConnectivity = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8005/health');
+        const res = await fetch('/health');
         setIsOnline(res.ok);
       } catch {
         setIsOnline(false);
@@ -498,7 +499,7 @@ export const RobotCompanion: React.FC = () => {
         content: m.content
       }));
 
-      const res = await fetch('http://127.0.0.1:8005/api/v1/assistant/chat', {
+      const res = await fetch('/api/v1/assistant/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -572,7 +573,7 @@ export const RobotCompanion: React.FC = () => {
   // Record feedback (thumbs up / down)
   const handleFeedback = async (msgId: string, query: string, helpful: boolean) => {
     try {
-      await fetch('http://127.0.0.1:8005/api/v1/assistant/feedback', {
+      await fetch('/api/v1/assistant/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -596,7 +597,7 @@ export const RobotCompanion: React.FC = () => {
   // Save scheme bookmark directly from embedded card
   const handleSaveScheme = async (schemeId: string) => {
     try {
-      const resp = await fetch('http://127.0.0.1:8005/api/v1/citizen/schemes/save', {
+      const resp = await fetch('/api/v1/citizen/schemes/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -634,36 +635,73 @@ export const RobotCompanion: React.FC = () => {
       {/* FLOATING ACTION LAUNCHER (COMPACT MODE)                             */}
       {/* ------------------------------------------------------------------- */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        <div
+          className="yojana-robot-launcher"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 99990,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
           {/* Attention Tooltip Bubble */}
-          <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 dark:bg-slate-800 text-white border-2 border-emerald-500 shadow-xl text-xs font-bold animate-bounce">
-            <Sparkles size={14} className="text-amber-400" />
+          <div
+            className="yojana-robot-bubble"
+            onClick={() => setIsOpen(true)}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: 'pointer' }}
+          >
+            <Sparkles size={14} style={{ color: '#fbbf24', flexShrink: 0 }} />
             <span>{isHindi ? 'योजना सहायता चाहिए? मुझसे पूछें!' : 'Need scheme guidance? Ask Yojana AI!'}</span>
           </div>
 
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="group relative flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 dark:bg-slate-800 border-2 border-emerald-500 shadow-2xl hover:scale-105 active:scale-95 transition-all focus:outline-none"
+            className="yojana-robot-btn"
+            style={{
+              position: 'relative',
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              padding: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#0f172a',
+              border: '2.5px solid #10b981',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.35), 0 0 20px rgba(16,185,129,0.35)'
+            }}
             aria-label="Open Yojana AI Assistant"
             title="Yojana AI Citizen Assistant"
           >
             {/* Pulsing Emerald Halo */}
-            <span className="absolute -inset-1 rounded-full bg-emerald-500/30 animate-ping group-hover:bg-emerald-500/50" />
+            <span className="yojana-robot-btn-halo" />
 
             {/* Official Pixel Robot Companion Avatar */}
             <img
               src="/assistant-robot.jpg"
               alt="Yojana AI Robot"
-              className="relative w-12 h-12 object-contain rounded-full shadow-inner"
+              className="yojana-robot-avatar-img"
+              style={{
+                width: '52px',
+                height: '52px',
+                objectFit: 'contain',
+                borderRadius: '50%',
+                display: 'block'
+              }}
             />
 
             {/* Live Online Badge */}
             <span
-              className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-slate-900 ${
-                isOnline ? 'bg-emerald-500' : 'bg-red-500'
+              className={`yojana-robot-status-dot ${
+                isOnline ? 'yojana-robot-status-online' : 'yojana-robot-status-offline'
               }`}
-              title={isOnline ? 'Connected to AI Engine' : 'Offline'}
             />
           </button>
         </div>
@@ -674,48 +712,67 @@ export const RobotCompanion: React.FC = () => {
       {/* ------------------------------------------------------------------- */}
       {isOpen && (
         <div
-          className={`fixed z-50 flex flex-col bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-700 shadow-2xl transition-all duration-300 ease-out overflow-hidden ${
+          className={`yojana-assistant-window ${isExpanded ? 'fullscreen' : ''}`}
+          style={
             isExpanded
-              ? 'inset-3 sm:inset-6 rounded-2xl'
-              : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[95vw] sm:w-[470px] h-[85vh] sm:h-[680px] max-h-[760px] rounded-2xl'
-          }`}
+              ? {
+                  position: 'fixed',
+                  top: '16px',
+                  left: '16px',
+                  right: '16px',
+                  bottom: '16px',
+                  zIndex: 99995,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  background: 'var(--bg-surface-elevated, #ffffff)',
+                  borderRadius: '20px',
+                  overflow: 'hidden',
+                  boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5)'
+                }
+              : {
+                  position: 'fixed',
+                  bottom: '24px',
+                  right: '24px',
+                  width: 'min(475px, calc(100vw - 32px))',
+                  height: 'min(710px, calc(100vh - 48px))',
+                  maxHeight: '820px',
+                  zIndex: 99995,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  background: 'var(--bg-surface-elevated, #ffffff)',
+                  borderRadius: '20px',
+                  overflow: 'hidden',
+                  boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5)'
+                }
+          }
         >
           {/* HEADER */}
-          <div className="px-4 py-3 bg-slate-900 dark:bg-slate-950 text-white flex items-center justify-between border-b-2 border-slate-800">
+          <div className="yojana-assistant-header">
             {/* Assistant Identity */}
-            <div className="flex items-center gap-3">
-              <div className={`relative w-10 h-10 rounded-xl bg-slate-800 border p-1 flex items-center justify-center shadow-md transition-all ${
-                assistantState === 'listening'
-                  ? 'border-red-500 ring-2 ring-red-500/50'
-                  : assistantState === 'speaking'
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/50 animate-pulse'
-                  : assistantState === 'thinking'
-                  ? 'border-amber-400 animate-pulse'
-                  : 'border-emerald-500/60'
-              }`}>
+            <div className="yojana-assistant-identity">
+              <div
+                className={`yojana-assistant-avatar-box state-${assistantState}`}
+                style={{ width: '40px', height: '40px', flexShrink: 0 }}
+              >
                 <img
                   src="/assistant-robot.jpg"
                   alt="Yojana AI"
-                  className="w-full h-full object-contain rounded-lg"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }}
                 />
                 <span
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
-                    isOnline ? 'bg-emerald-400' : 'bg-red-400'
+                  className={`yojana-robot-status-dot ${
+                    isOnline ? 'yojana-robot-status-online' : 'yojana-robot-status-offline'
                   }`}
+                  style={{ bottom: '-2px', right: '-2px', width: '10px', height: '10px' }}
                 />
               </div>
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-white flex items-center gap-1.5">
-                    Yojana AI
-                    <span className="text-xs font-normal text-slate-300">| योजना एआई</span>
-                  </h3>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                    GovTech RAG
-                  </span>
+              <div className="yojana-assistant-title-group">
+                <div className="yojana-assistant-title-row">
+                  <h3 className="yojana-assistant-title">Yojana AI</h3>
+                  <span className="yojana-assistant-badge">GovTech RAG</span>
                 </div>
-                <p className="text-[11px] text-slate-300">
+                <p className="yojana-assistant-subtitle">
                   {assistantState === 'listening'
                     ? (isHindi ? '🎙️ आपकी आवाज़ सुन रहा हूँ...' : '🎙️ Listening to you...')
                     : assistantState === 'speaking'
@@ -728,7 +785,7 @@ export const RobotCompanion: React.FC = () => {
             </div>
 
             {/* Header Controls */}
-            <div className="flex items-center gap-1.5 text-slate-300">
+            <div className="yojana-assistant-header-controls">
               {/* Interaction Mode Switcher: Simple vs Advanced */}
               <button
                 type="button"
@@ -737,11 +794,7 @@ export const RobotCompanion: React.FC = () => {
                   setMode(nextMode);
                   saveSettings({ assistant_mode: nextMode } as any);
                 }}
-                className={`px-2 py-1 text-[11px] font-bold rounded-md border transition-colors flex items-center gap-1 ${
-                  mode === 'advanced'
-                    ? 'bg-purple-950 text-purple-200 border-purple-600 shadow-sm'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700 shadow-sm'
-                }`}
+                className={`yojana-hdr-btn ${mode === 'advanced' ? 'active' : ''}`}
                 title={
                   mode === 'simple'
                     ? (isHindi ? 'सरल मोड (नागरिक) — क्लिक करके उन्नत मोड में बदलें' : 'Simple Mode (Citizen) — Click to switch to Advanced Mode')
@@ -756,18 +809,18 @@ export const RobotCompanion: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setLanguage(isHindi ? 'en' : 'hi')}
-                className="px-2 py-1 text-xs font-bold rounded-md bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition-colors"
+                className="yojana-hdr-btn"
                 title={isHindi ? 'Switch to English' : 'हिंदी में बदलें'}
               >
                 {isHindi ? 'EN' : 'हिन्दी'}
               </button>
 
               {/* Speed Rate Control Dropdown Toggle */}
-              <div className="relative">
+              <div style={{ position: 'relative' }}>
                 <button
                   type="button"
                   onClick={() => setShowSpeedControls(!showSpeedControls)}
-                  className="px-2 py-1 text-[11px] font-bold rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1"
+                  className="yojana-hdr-btn"
                   title="Speech Playback Speed"
                 >
                   <Sliders size={12} />
@@ -775,15 +828,13 @@ export const RobotCompanion: React.FC = () => {
                 </button>
 
                 {showSpeedControls && (
-                  <div className="absolute right-0 mt-1 w-24 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 p-1 flex flex-col gap-1">
+                  <div className="yojana-speed-popup">
                     {[0.75, 1.0, 1.25].map(rate => (
                       <button
                         key={rate}
                         type="button"
                         onClick={() => handleRateChange(rate)}
-                        className={`text-xs px-2 py-1 rounded text-left ${
-                          speechRate === rate ? 'bg-emerald-600 text-white font-bold' : 'hover:bg-slate-800 text-slate-300'
-                        }`}
+                        className={`yojana-speed-item ${speechRate === rate ? 'active' : ''}`}
                       >
                         {rate}x {rate === 1.0 ? '(Normal)' : ''}
                       </button>
@@ -796,9 +847,8 @@ export const RobotCompanion: React.FC = () => {
               <button
                 type="button"
                 onClick={toggleAutoSpeak}
-                className={`p-1.5 rounded-md hover:bg-slate-800 transition-colors ${
-                  autoSpeak ? 'text-emerald-400' : 'text-slate-400'
-                }`}
+                className={`yojana-hdr-btn-icon ${autoSpeak ? 'active' : ''}`}
+                style={{ color: autoSpeak ? '#10b981' : '#94a3b8' }}
                 title={autoSpeak ? 'Auto-Speak ON (Click to disable)' : 'Auto-Speak OFF (Click to enable)'}
               >
                 {autoSpeak ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -808,7 +858,7 @@ export const RobotCompanion: React.FC = () => {
               <button
                 type="button"
                 onClick={handleResetConversation}
-                className="p-1.5 rounded-md hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                className="yojana-hdr-btn-icon"
                 title={isHindi ? 'वार्तालाप रीसेट करें' : 'Reset Conversation'}
               >
                 <RotateCcw size={16} />
@@ -818,7 +868,7 @@ export const RobotCompanion: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="hidden sm:block p-1.5 rounded-md hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                className="yojana-hdr-btn-icon"
                 title={isExpanded ? 'Restore Size' : 'Expand Fullscreen'}
               >
                 {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -832,7 +882,8 @@ export const RobotCompanion: React.FC = () => {
                   stopListening(false);
                   setIsOpen(false);
                 }}
-                className="p-1.5 rounded-md hover:bg-red-900/60 text-slate-300 hover:text-red-200 transition-colors"
+                className="yojana-hdr-btn-icon"
+                style={{ color: '#ef4444' }}
                 title="Close"
               >
                 <X size={18} />
@@ -842,14 +893,14 @@ export const RobotCompanion: React.FC = () => {
 
           {/* GLOBAL FEEDBACK TOAST */}
           {feedbackToast && (
-            <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2 flex items-center justify-center gap-2 shadow-sm animate-fadeIn">
+            <div className="yojana-toast-banner">
               <CheckCircle2 size={14} />
               <span>{feedbackToast}</span>
             </div>
           )}
 
           {/* CONVERSATION MESSAGE STREAM */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/70 dark:bg-slate-950/70">
+          <div className="yojana-assistant-messages">
             {messages.map(msg => {
               const isUser = msg.role === 'user';
               const isSpeakingThis = activeSpeakingMsgId === msg.id && !isPaused;
@@ -857,34 +908,27 @@ export const RobotCompanion: React.FC = () => {
               return (
                 <div
                   key={msg.id}
-                  className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+                  className={`yojana-msg-row ${isUser ? 'yojana-msg-user' : 'yojana-msg-assistant'}`}
                 >
                   {/* Assistant Avatar */}
                   {!isUser && (
-                    <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-800 border border-emerald-500/60 p-0.5 flex-shrink-0 self-start shadow-sm mt-0.5">
+                    <div className="yojana-msg-avatar">
                       <img
                         src="/assistant-robot.jpg"
                         alt="Yojana AI"
-                        className="w-full h-full object-contain rounded-md"
                       />
                     </div>
                   )}
 
                   {/* Message Bubble Container */}
-                  <div className={`max-w-[85%] space-y-3 ${isUser ? 'items-end' : 'items-start'}`}>
-                    <div
-                      className={`p-4 rounded-2xl shadow-sm text-sm border-2 leading-relaxed ${
-                        isUser
-                          ? 'bg-slate-900 text-white border-slate-900 dark:border-slate-800 rounded-br-sm'
-                          : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 rounded-bl-sm'
-                      }`}
-                    >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '88%' }}>
+                    <div className="yojana-msg-bubble">
                       {/* Markdown Structured Body */}
-                      <div className="prose dark:prose-invert max-w-none text-sm space-y-2">
+                      <div style={{ fontSize: '0.86rem', lineHeight: '1.6' }}>
                         {msg.content.split('\n\n').map((paragraph, pIdx) => {
                           if (paragraph.startsWith('### ')) {
                             return (
-                              <h4 key={pIdx} className="font-extrabold text-base text-emerald-700 dark:text-emerald-400 mt-2 mb-1">
+                              <h4 key={pIdx} style={{ fontWeight: 800, fontSize: '0.98rem', color: '#10b981', margin: '8px 0 4px' }}>
                                 {paragraph.replace('### ', '')}
                               </h4>
                             );
@@ -893,13 +937,13 @@ export const RobotCompanion: React.FC = () => {
                             // Render Markdown Table
                             const rows = paragraph.split('\n').filter(r => r.includes('|') && !r.includes('---'));
                             return (
-                              <div key={pIdx} className="overflow-x-auto my-2 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <table className="w-full text-xs text-left">
+                              <div key={pIdx} style={{ overflowX: 'auto', margin: '8px 0' }}>
+                                <table>
                                   <tbody>
                                     {rows.map((row, rIdx) => (
-                                      <tr key={rIdx} className={rIdx === 0 ? 'bg-slate-100 dark:bg-slate-800 font-bold' : 'border-t border-slate-100 dark:border-slate-800'}>
+                                      <tr key={rIdx}>
                                         {row.split('|').filter(c => c.trim().length > 0).map((cell, cIdx) => (
-                                          <td key={cIdx} className="p-2 border-r border-slate-200 dark:border-slate-800 last:border-r-0">
+                                          <td key={cIdx}>
                                             {cell.trim()}
                                           </td>
                                         ))}
@@ -911,7 +955,7 @@ export const RobotCompanion: React.FC = () => {
                             );
                           }
                           return (
-                            <p key={pIdx} className="whitespace-pre-line leading-relaxed">
+                            <p key={pIdx} style={{ whiteSpace: 'pre-line', margin: '4px 0' }}>
                               {paragraph}
                             </p>
                           );
@@ -920,49 +964,49 @@ export const RobotCompanion: React.FC = () => {
 
                       {/* EMBEDDED INTERACTIVE SCHEME CARDS */}
                       {msg.schemesFound && msg.schemesFound.length > 0 && (
-                        <div className="mt-4 space-y-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
-                          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                            <Sparkles size={14} className="text-amber-500" />
+                        <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Sparkles size={14} style={{ color: '#f59e0b' }} />
                             {isHindi ? 'प्रासंगिक सरकारी योजनाएं' : 'Matched Government Schemes'}
                           </span>
 
-                          <div className="grid grid-cols-1 gap-2.5">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
                             {msg.schemesFound.map(s => (
                               <div
                                 key={s.scheme_id}
-                                className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 hover:border-emerald-500 dark:hover:border-emerald-600 transition-all space-y-2"
+                                className="yojana-chat-scheme-card"
                               >
-                                <div className="flex items-start justify-between gap-2">
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
                                   <div>
-                                    <h5 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
+                                    <h5 className="yojana-chat-scheme-title">
                                       {isHindi ? s.name_hi : s.name_en}
                                     </h5>
                                     {s.ministry_or_dept && (
-                                      <span className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
                                         {s.ministry_or_dept}
                                       </span>
                                     )}
                                   </div>
-                                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex-shrink-0">
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
                                     {s.category}
                                   </span>
                                 </div>
 
                                 {(s.benefits_summary_en || s.benefits_summary_hi) && (
-                                  <p className="text-xs text-slate-700 dark:text-slate-300 font-medium line-clamp-2">
+                                  <p className="yojana-chat-scheme-desc">
                                     {isHindi ? s.benefits_summary_hi : s.benefits_summary_en}
                                   </p>
                                 )}
 
                                 {/* Interactive Action Buttons */}
-                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                <div className="yojana-chat-scheme-actions">
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setIsOpen(false);
                                       navigate(`/eligibility?scheme=${s.scheme_id}`);
                                     }}
-                                    className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 shadow-sm"
+                                    className="yojana-scheme-action-btn yojana-scheme-action-primary"
                                   >
                                     <UserCheck size={12} />
                                     {isHindi ? 'पात्रता जांचें' : 'Check Eligibility'}
@@ -974,7 +1018,7 @@ export const RobotCompanion: React.FC = () => {
                                       setIsOpen(false);
                                       navigate(`/schemes/${s.scheme_id}`);
                                     }}
-                                    className="px-2.5 py-1 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
+                                    className="yojana-scheme-action-btn yojana-scheme-action-secondary"
                                   >
                                     <Info size={12} />
                                     {isHindi ? 'विवरण' : 'Details'}
@@ -983,7 +1027,7 @@ export const RobotCompanion: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleSaveScheme(s.scheme_id)}
-                                    className="px-2 py-1 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center gap-1"
+                                    className="yojana-scheme-action-btn yojana-scheme-action-secondary"
                                     title="Save to My Profile"
                                   >
                                     <Bookmark size={12} />
@@ -994,7 +1038,8 @@ export const RobotCompanion: React.FC = () => {
                                       href={s.official_portal_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="px-2 py-1 text-xs font-medium rounded-md text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 ml-auto"
+                                      className="yojana-scheme-action-btn yojana-scheme-action-secondary"
+                                      style={{ marginLeft: 'auto' }}
                                     >
                                       <ExternalLink size={12} />
                                     </a>
@@ -1008,25 +1053,25 @@ export const RobotCompanion: React.FC = () => {
 
                       {/* EMBEDDED ELIGIBILITY ADVISOR BRIEF */}
                       {msg.eligibilityBrief && (
-                        <div className="mt-3.5 p-3.5 rounded-xl border-2 border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/40 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                              <ShieldCheck size={16} className="text-emerald-600" />
+                        <div className="yojana-chat-eligibility-box">
+                          <div className="yojana-chat-eligibility-header">
+                            <span className="yojana-chat-eligibility-title">
+                              <ShieldCheck size={16} style={{ color: '#10b981' }} />
                               {isHindi ? 'प्रोफ़ाइल पात्रता विश्लेषण' : 'Citizen Eligibility Status'}
                             </span>
-                            <span className="px-2 py-0.5 text-xs font-extrabold rounded-full bg-emerald-600 text-white shadow-sm">
+                            <span className="yojana-chat-eligibility-badge">
                               {msg.eligibilityBrief.status}
                             </span>
                           </div>
 
                           {msg.eligibilityBrief.matched_criteria.length > 0 && (
-                            <div className="space-y-1 text-xs text-emerald-900 dark:text-emerald-200">
-                              <span className="font-bold text-[11px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                            <div style={{ fontSize: '0.75rem', color: '#10b981', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <span style={{ fontWeight: 800, fontSize: '0.68rem', textTransform: 'uppercase' }}>
                                 {isHindi ? 'संतुष्ट शर्तें (Matched):' : 'Satisfied Conditions:'}
                               </span>
                               {msg.eligibilityBrief.matched_criteria.map((c, i) => (
-                                <div key={i} className="flex items-center gap-1.5">
-                                  <Check size={13} className="text-emerald-600 flex-shrink-0" />
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Check size={13} style={{ color: '#10b981', flexShrink: 0 }} />
                                   <span>{c}</span>
                                 </div>
                               ))}
@@ -1034,13 +1079,13 @@ export const RobotCompanion: React.FC = () => {
                           )}
 
                           {msg.eligibilityBrief.missing_criteria.length > 0 && (
-                            <div className="space-y-1 text-xs text-amber-900 dark:text-amber-200 pt-1">
-                              <span className="font-bold text-[11px] uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                            <div style={{ fontSize: '0.75rem', color: '#f59e0b', display: 'flex', flexDirection: 'column', gap: '3px', paddingTop: '4px' }}>
+                              <span style={{ fontWeight: 800, fontSize: '0.68rem', textTransform: 'uppercase' }}>
                                 {isHindi ? 'जांच आवश्यक (Pending):' : 'Verification Required:'}
                               </span>
                               {msg.eligibilityBrief.missing_criteria.map((m, i) => (
-                                <div key={i} className="flex items-center gap-1.5">
-                                  <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <AlertCircle size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
                                   <span>{m}</span>
                                 </div>
                               ))}
@@ -1053,7 +1098,8 @@ export const RobotCompanion: React.FC = () => {
                               setIsOpen(false);
                               navigate(`/eligibility?scheme=${msg.eligibilityBrief?.scheme_id}`);
                             }}
-                            className="w-full mt-2 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                            className="yojana-scheme-action-btn yojana-scheme-action-primary"
+                            style={{ justifyContent: 'center', width: '100%', marginTop: '6px', padding: '6px 10px' }}
                           >
                             <UserCheck size={14} />
                             {isHindi ? 'आधिकारिक 7-चरणीय मूल्यांकन खोलें' : 'Launch Full 7-Step Evaluation'}
@@ -1063,35 +1109,35 @@ export const RobotCompanion: React.FC = () => {
 
                       {/* VERIFIED SOURCE CITATION CARDS */}
                       {msg.citations && msg.citations.length > 0 && (
-                        <div className="mt-3.5 space-y-2 pt-2.5 border-t border-slate-200 dark:border-slate-800">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                            <FileText size={13} className="text-emerald-600" />
+                        <div className="yojana-citations-container">
+                          <span className="yojana-citations-title">
+                            <FileText size={13} style={{ color: '#10b981' }} />
                             {isHindi ? 'सत्यापित आधिकारिक स्रोत एवं गजट' : 'Verified Official Gazette Citations'}
                           </span>
 
-                          <div className="space-y-1.5">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {msg.citations.map((cite, cIdx) => (
                               <div
                                 key={cIdx}
                                 onClick={() => setSelectedCitation(cite)}
-                                className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/70 hover:border-emerald-500 cursor-pointer transition-all flex items-center justify-between gap-2 group"
+                                className="yojana-citation-card"
                               >
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ padding: '1px 5px', fontSize: '0.65rem', fontWeight: 800, borderRadius: '4px', background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
                                       Page {cite.page}
                                     </span>
-                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-emerald-600">
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                       {cite.title}
                                     </span>
                                   </div>
                                   {cite.excerpt && (
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                                    <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                       "{cite.excerpt}"
                                     </p>
                                   )}
                                 </div>
-                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 flex-shrink-0">
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
                                   {isHindi ? 'दस्तावेज़ देखें' : 'Inspect'} <ChevronRight size={13} />
                                 </span>
                               </div>
@@ -1102,14 +1148,14 @@ export const RobotCompanion: React.FC = () => {
 
                       {/* NAVIGATION ACTION PILL */}
                       {msg.navigation && (
-                        <div className="mt-3 pt-2">
+                        <div className="yojana-nav-pill-box">
                           <button
                             type="button"
                             onClick={() => {
                               setIsOpen(false);
                               navigate(msg.navigation!.path);
                             }}
-                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border-2 border-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 transition-colors shadow-sm"
+                            className="yojana-nav-pill-btn"
                           >
                             <span>{msg.navigation.label}</span>
                             <ArrowRight size={14} />
@@ -1120,17 +1166,25 @@ export const RobotCompanion: React.FC = () => {
 
                     {/* MESSAGE FOOTER & ACTIONS */}
                     {!isUser && (
-                      <div className="flex items-center justify-between text-xs text-slate-400 px-1 pt-0.5">
-                        <div className="flex items-center gap-2">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', padding: '0 4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {/* Audio Listen / Pause Button */}
                           <button
                             type="button"
                             onClick={() => speakMessage(msg.id, msg.speechText || msg.content)}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-[11px] transition-colors ${
-                              isSpeakingThis
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-400 animate-pulse'
-                                : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                            }`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.72rem',
+                              border: isSpeakingThis ? '1px solid #10b981' : 'none',
+                              background: isSpeakingThis ? 'rgba(16,185,129,0.15)' : 'transparent',
+                              color: isSpeakingThis ? '#10b981' : 'inherit',
+                              cursor: 'pointer'
+                            }}
                             title="Listen to response aloud"
                           >
                             {isSpeakingThis ? <Pause size={12} /> : <Play size={12} />}
@@ -1141,7 +1195,7 @@ export const RobotCompanion: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => replayMessage(msg.id, msg.speechText || msg.content)}
-                            className="hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 p-1 rounded-md transition-colors"
+                            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: '2px' }}
                             title={isHindi ? 'शुरू से दोबारा सुनें' : 'Replay from start'}
                           >
                             <RotateCcw size={12} />
@@ -1152,7 +1206,7 @@ export const RobotCompanion: React.FC = () => {
                             <button
                               type="button"
                               onClick={stopSpeaking}
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
                               title="Stop audio playback"
                             >
                               <Square size={11} />
@@ -1164,13 +1218,13 @@ export const RobotCompanion: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleCopyMessage(msg.id, msg.content)}
-                            className="hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1 text-[11px]"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer' }}
                             title="Copy response text"
                           >
                             {copiedMsgId === msg.id ? (
                               <>
-                                <Check size={12} className="text-emerald-600" />
-                                <span className="text-emerald-600 font-bold">{isHindi ? 'कॉपी हो गया' : 'Copied'}</span>
+                                <Check size={12} style={{ color: '#10b981' }} />
+                                <span style={{ color: '#10b981', fontWeight: 700 }}>{isHindi ? 'कॉपी हो गया' : 'Copied'}</span>
                               </>
                             ) : (
                               <>
@@ -1181,13 +1235,11 @@ export const RobotCompanion: React.FC = () => {
                           </button>
 
                           {/* Feedback Thumbs */}
-                          <div className="flex items-center gap-1 ml-2 border-l border-slate-200 dark:border-slate-800 pl-2">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderLeft: '1px solid rgba(0,0,0,0.1)', paddingLeft: '8px' }}>
                             <button
                               type="button"
                               onClick={() => handleFeedback(msg.id, msg.content, true)}
-                              className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 ${
-                                msg.feedback === 'helpful' ? 'text-emerald-600' : 'text-slate-400'
-                              }`}
+                              style={{ background: 'transparent', border: 'none', color: msg.feedback === 'helpful' ? '#10b981' : '#94a3b8', cursor: 'pointer', padding: '2px' }}
                               title="Helpful response"
                             >
                               <ThumbsUp size={12} />
@@ -1195,9 +1247,7 @@ export const RobotCompanion: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleFeedback(msg.id, msg.content, false)}
-                              className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 ${
-                                msg.feedback === 'unhelpful' ? 'text-red-500' : 'text-slate-400'
-                              }`}
+                              style={{ background: 'transparent', border: 'none', color: msg.feedback === 'unhelpful' ? '#ef4444' : '#94a3b8', cursor: 'pointer', padding: '2px' }}
                               title="Unhelpful response"
                             >
                               <ThumbsDown size={12} />
@@ -1205,12 +1255,12 @@ export const RobotCompanion: React.FC = () => {
                           </div>
                         </div>
 
-                        <span className="text-[10px] text-slate-400">{msg.timestamp}</span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{msg.timestamp}</span>
                       </div>
                     )}
 
                     {isUser && (
-                      <div className="text-right text-[10px] text-slate-400 px-1">
+                      <div style={{ textAlign: 'right', fontSize: '0.68rem', color: '#94a3b8', padding: '0 4px' }}>
                         {msg.timestamp}
                       </div>
                     )}
@@ -1221,15 +1271,15 @@ export const RobotCompanion: React.FC = () => {
 
             {/* THINKING LIVE INDICATOR */}
             {assistantState === 'thinking' && (
-              <div className="flex items-center gap-3 animate-fadeIn">
-                <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-800 border border-emerald-500/60 p-0.5 flex-shrink-0 flex items-center justify-center">
-                  <img src="/assistant-robot.jpg" alt="Yojana AI" className="w-full h-full object-contain rounded-md" />
+              <div className="yojana-thinking-indicator">
+                <div className="yojana-msg-avatar">
+                  <img src="/assistant-robot.jpg" alt="Yojana AI" />
                 </div>
-                <div className="px-4 py-2.5 rounded-2xl rounded-bl-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2 shadow-sm">
-                  <div className="flex space-x-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="yojana-thinking-bubble">
+                  <div className="yojana-thinking-dots">
+                    <span className="yojana-thinking-dot" />
+                    <span className="yojana-thinking-dot" />
+                    <span className="yojana-thinking-dot" />
                   </div>
                   <span>{isHindi ? 'आधिकारिक गजट एवं नियमों का विश्लेषण...' : 'Grounding with official guidelines...'}</span>
                 </div>
@@ -1238,26 +1288,19 @@ export const RobotCompanion: React.FC = () => {
 
             {/* LIVE VOICE RECORDING & WAVEFORM DISPLAY */}
             {assistantState === 'listening' && (
-              <div className="p-3.5 bg-emerald-950/20 dark:bg-emerald-950/50 border-2 border-emerald-500/60 rounded-2xl space-y-2 animate-fadeIn shadow-inner">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {/* Live pulsating recording indicator */}
-                    <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                    </span>
-                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                      {isHindi ? 'माइक सक्रिय (सुन रहा है...)' : 'Microphone Live (Listening...)'}
-                    </span>
+              <div className="yojana-live-waveform-panel">
+                <div className="yojana-waveform-header">
+                  <div className="yojana-waveform-indicator">
+                    <span className="yojana-waveform-dot" />
+                    <span>{isHindi ? 'माइक सक्रिय (सुन रहा है...)' : 'Microphone Live (Listening...)'}</span>
                   </div>
 
                   {/* Frequency Waveform Visualizer */}
-                  <div className="flex items-center gap-1 h-6 px-2.5 py-1 bg-slate-900 rounded-full border border-emerald-500/40">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '24px', padding: '2px 8px', background: '#090d16', borderRadius: '9999px', border: '1px solid rgba(16,185,129,0.3)' }}>
                     {audioLevels.map((lvl, idx) => (
                       <span
                         key={idx}
-                        className="w-1 bg-emerald-400 rounded-full transition-all duration-75"
-                        style={{ height: `${lvl}px` }}
+                        style={{ width: '3px', height: `${lvl}px`, background: '#10b981', borderRadius: '9999px', transition: 'height 75ms ease' }}
                       />
                     ))}
                   </div>
@@ -1266,7 +1309,7 @@ export const RobotCompanion: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSpeechLang(speechLang === 'hi-IN' ? 'en-IN' : 'hi-IN')}
-                    className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 hover:border-emerald-500"
+                    style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', cursor: 'pointer' }}
                     title="Toggle Speech Recognition Language"
                   >
                     {speechLang === 'hi-IN' ? 'HI-IN' : 'EN-IN'}
@@ -1274,24 +1317,22 @@ export const RobotCompanion: React.FC = () => {
                 </div>
 
                 {/* Real-time transcribed text preview */}
-                <div className="p-2.5 bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-xl text-xs text-slate-800 dark:text-slate-200 min-h-[38px] flex items-center">
+                <div className="yojana-transcript-box">
                   {interimTranscript || inputQuery ? (
-                    <span className="italic">
-                      "{inputQuery ? inputQuery + ' ' : ''}{interimTranscript}"
-                    </span>
+                    <span>"{inputQuery ? inputQuery + ' ' : ''}{interimTranscript}"</span>
                   ) : (
-                    <span className="text-slate-400">
+                    <span style={{ color: '#94a3b8' }}>
                       {isHindi ? 'कृपया स्पष्ट आवाज़ में बोलें...' : 'Please speak clearly into your microphone...'}
                     </span>
                   )}
                 </div>
 
                 {/* Voice Action Controls: Cancel, Keep/Edit, Send */}
-                <div className="flex items-center justify-end gap-2 pt-1">
+                <div className="yojana-waveform-actions">
                   <button
                     type="button"
                     onClick={() => stopListening(false)}
-                    className="px-3 py-1 text-xs font-bold rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-1 transition-colors"
+                    style={{ padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px', border: '1px solid #ef4444', background: 'transparent', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
                   >
                     <X size={13} />
                     <span>{isHindi ? 'रद्द करें' : 'Cancel'}</span>
@@ -1300,7 +1341,7 @@ export const RobotCompanion: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => stopListening(true)}
-                    className="px-3 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1 transition-colors shadow-sm"
+                    style={{ padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
                     title={isHindi ? 'माइक बंद कर संपादन करें' : 'Stop mic and edit text'}
                   >
                     <Check size={13} />
@@ -1311,7 +1352,7 @@ export const RobotCompanion: React.FC = () => {
                     type="button"
                     onClick={() => handleSendMessage()}
                     disabled={!inputQuery.trim() && !interimTranscript.trim()}
-                    className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    style={{ padding: '4px 12px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px', border: 'none', background: '#10b981', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '4px', cursor: (!inputQuery.trim() && !interimTranscript.trim()) ? 'not-allowed' : 'pointer', opacity: (!inputQuery.trim() && !interimTranscript.trim()) ? 0.4 : 1 }}
                   >
                     <Send size={13} />
                     <span>{isHindi ? 'तुरंत भेजें' : 'Send Now'}</span>
@@ -1322,8 +1363,8 @@ export const RobotCompanion: React.FC = () => {
 
             {/* ERROR TOAST */}
             {errorMessage && (
-              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700 rounded-xl text-xs text-red-900 dark:text-red-200 flex items-center gap-2">
-                <AlertCircle size={14} className="text-red-600 flex-shrink-0" />
+              <div className="yojana-error-banner">
+                <AlertCircle size={14} style={{ color: '#ef4444', flexShrink: 0 }} />
                 <span>{errorMessage}</span>
               </div>
             )}
@@ -1333,8 +1374,8 @@ export const RobotCompanion: React.FC = () => {
 
           {/* DYNAMIC SUGGESTED QUESTION CHIPS */}
           {latestSuggestions.length > 0 && (
-            <div className="px-4 py-2 bg-slate-100/80 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex-shrink-0">
+            <div className="yojana-quick-prompts">
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94a3b8', flexShrink: 0, paddingLeft: '8px' }}>
                 {isHindi ? 'सुझाव:' : 'Suggested:'}
               </span>
               {latestSuggestions.map((q, idx) => (
@@ -1342,7 +1383,7 @@ export const RobotCompanion: React.FC = () => {
                   key={idx}
                   type="button"
                   onClick={() => handleSendMessage(q)}
-                  className="px-2.5 py-1 text-xs rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400 whitespace-nowrap flex-shrink-0 transition-colors shadow-sm"
+                  className="yojana-quick-pill"
                 >
                   {q}
                 </button>
@@ -1351,64 +1392,65 @@ export const RobotCompanion: React.FC = () => {
           )}
 
           {/* INPUT BAR */}
-          <div className="p-3 bg-white dark:bg-slate-900 border-t-2 border-slate-900 dark:border-slate-800 flex items-center gap-2">
-            {/* Voice Input Microphone Button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (assistantState === 'listening') {
-                  stopListening(true);
-                } else {
-                  startListening();
-                }
-              }}
-              className={`p-2.5 rounded-xl border-2 transition-all flex-shrink-0 ${
-                assistantState === 'listening'
-                  ? 'bg-red-600 border-red-700 text-white animate-pulse shadow-lg ring-4 ring-red-200 dark:ring-red-900'
-                  : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-500'
-              }`}
-              title={assistantState === 'listening' ? 'Stop Listening' : 'Speak your query'}
-            >
-              {assistantState === 'listening' ? <MicOff size={18} /> : <Mic size={18} />}
-            </button>
+          <div className="yojana-assistant-footer">
+            <div className="yojana-input-row">
+              {/* Voice Input Microphone Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (assistantState === 'listening') {
+                    stopListening(true);
+                  } else {
+                    startListening();
+                  }
+                }}
+                className="yojana-mic-btn"
+                style={{
+                  background: assistantState === 'listening' ? '#ef4444' : undefined,
+                  color: assistantState === 'listening' ? '#ffffff' : undefined,
+                  borderColor: assistantState === 'listening' ? '#ef4444' : undefined,
+                }}
+                title={assistantState === 'listening' ? 'Stop Listening' : 'Speak your query'}
+              >
+                {assistantState === 'listening' ? <MicOff size={18} /> : <Mic size={18} />}
+              </button>
 
-            {/* Text Input */}
-            <input
-              type="text"
-              value={inputQuery}
-              onChange={e => {
-                stopSpeaking();
-                setInputQuery(e.target.value);
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
+              {/* Text Input */}
+              <input
+                type="text"
+                value={inputQuery}
+                onChange={e => {
+                  stopSpeaking();
+                  setInputQuery(e.target.value);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder={
+                  isHindi
+                    ? 'योजना, पात्रता, या दस्तावेज़ के बारे में पूछें...'
+                    : 'Ask about any scheme, eligibility, or documents...'
                 }
-              }}
-              placeholder={
-                isHindi
-                  ? 'योजना, पात्रता, या दस्तावेज़ के बारे में पूछें...'
-                  : 'Ask about any scheme, eligibility, or documents...'
-              }
-              className="flex-1 px-4 py-2 text-sm rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition-colors"
-            />
+                className="yojana-input-field"
+              />
 
-            {/* Send Button */}
-            <button
-              type="button"
-              onClick={() => handleSendMessage()}
-              disabled={!inputQuery.trim() || assistantState === 'thinking'}
-              className="p-2.5 rounded-xl border-2 border-slate-900 dark:border-emerald-700 bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md flex-shrink-0"
-              title="Send message"
-            >
-              <Send size={18} />
-            </button>
+              {/* Send Button */}
+              <button
+                type="button"
+                onClick={() => handleSendMessage()}
+                disabled={!inputQuery.trim() || assistantState === 'thinking'}
+                className="yojana-send-btn"
+                title="Send message"
+              >
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </div>
-      )}
-
-      {/* ------------------------------------------------------------------- */}
+      )}\n\n      {/* ------------------------------------------------------------------- */}
       {/* SOURCE CITATION INSPECTION MODAL (PDF EVIDENCE)                     */}
       {/* ------------------------------------------------------------------- */}
       {selectedCitation && (

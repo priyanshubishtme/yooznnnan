@@ -383,6 +383,124 @@ class AssistantService:
         lang = detect_language(message, default=language if language in ("hi", "en") else "en")
         is_hindi = lang == "hi"
 
+        # 0. Pure greeting / introduction / capability intent handling
+        cleaned_msg = re.sub(r"[^\w\s\u0900-\u097f]", "", message.strip().lower())
+        greetings_set = {
+            "hello", "hi", "hey", "namaste", "namaskar", "pranam", "pranaam",
+            "good morning", "good afternoon", "good evening", "help", "help me",
+            "who are you", "what can you do", "tell me about yourself", "how can you help",
+            "kaise ho", "kya haal hai", "kya hal hai", "aap kaun ho", "tum kaun ho",
+            "madad", "sahayata", "योजना बताएं", "योजनाएं बताओ", "नमस्ते", "प्रणाम",
+            "हाय", "हेलो", "मदद", "सहायता", "आप कौन हैं", "क्या कर सकते हैं"
+        }
+        if cleaned_msg in greetings_set or any(cleaned_msg == g for g in greetings_set):
+            if is_hindi:
+                greeting_reply = (
+                    "### नमस्ते! मैं **योजना एआई** हूँ — आपका आधिकारिक सरकारी कल्याण मार्गदर्शक। 🙏\n\n"
+                    "मैं आपको भारत सरकार एवं विभिन्न राज्य सरकारों की कल्याणकारी योजनाओं को खोजने, पात्रता नियमों को समझने, "
+                    "आवश्यक दस्तावेज जानने और सीधे आवेदन करने में सहायता करता हूँ।\n\n"
+                    "**मैं आपकी इन मुख्य श्रेणियों में सहायता कर सकता हूँ:**\n"
+                    "• 🌾 **किसान कल्याण:** PM-KISAN (₹6,000 वार्षिक सम्मान निधि), PMFBY फसल बीमा, किसान क्रेडिट कार्ड।\n"
+                    "• 🏥 **स्वास्थ्य सुरक्षा:** आयुष्मान भारत (प्रति परिवार प्रति वर्ष ₹5 लाख तक मुफ़्त इलाज)।\n"
+                    "• 🏠 **आवास योजना:** PM आवास योजना (ग्रामीण एवं शहरी पक्के मकान हेतु सब्सिडी)।\n"
+                    "• 🎓 **शिक्षा एवं छात्रवृत्ति:** राष्ट्रीय एवं राज्य स्तरीय छात्रवृत्ति योजनाएं।\n"
+                    "• 📋 **पात्रता मूल्यांकन:** आपकी पारिवारिक प्रोफ़ाइल अनुसार 7-चरणीय त्वरित पात्रता जांच।\n"
+                    "• 📍 **सेवा केंद्र खोज:** अपने नज़दीकी सीएससी (CSC) एवं जन सेवा केंद्र का पता।\n\n"
+                    "आप किस योजना या सहायता के बारे में जानना चाहते हैं?\n\n"
+                    "[[NAVIGATE: /schemes | 16+ आधिकारिक योजनाएं देखें]]"
+                )
+                speech_text = (
+                    "नमस्ते! मैं योजना एआई हूँ। मैं आपको सरकारी योजनाओं, पात्रता नियमों और आवश्यक दस्तावेजों की जानकारी दे सकता हूँ। "
+                    "आप किसान योजनाओं, आयुष्मान भारत, छात्रवृत्ति या आवास योजना के बारे में पूछ सकते हैं।"
+                )
+                suggestions = [
+                    "🌾 किसान सम्मान निधि (PM-KISAN) की जानकारी दें",
+                    "🏥 आयुष्मान भारत में 5 लाख का इलाज कैसे मिलता है?",
+                    "📋 मेरी योजना पात्रता की जांच करें",
+                    "🎓 कॉलेज छात्रों के लिए छात्रवृत्ति योजनाएं",
+                    "📍 मेरे नज़दीकी जन सेवा केंद्र (CSC) कहाँ हैं?"
+                ]
+            else:
+                greeting_reply = (
+                    "### Namaste! I am **Yojana AI** — your verified Government Welfare Advisor. 🙏\n\n"
+                    "I assist citizens in discovering central and state government schemes, understanding eligibility criteria, "
+                    "identifying mandatory documents, and navigating official application portals.\n\n"
+                    "**Key Welfare Categories I Can Guide You On:**\n"
+                    "• 🌾 **Farmer Welfare:** PM-KISAN (₹6,000/yr direct income support), PMFBY Crop Insurance, Kisan Credit Card.\n"
+                    "• 🏥 **Healthcare:** Ayushman Bharat Pradhan Mantri Jan Arogya Yojana (₹5 Lakh cashless health cover per family).\n"
+                    "• 🏠 **Housing:** Pradhan Mantri Awas Yojana (Subsidized housing grants for rural and urban households).\n"
+                    "• 🎓 **Education & Scholarships:** Post-Matric & Higher Education scholarships.\n"
+                    "• 📋 **Eligibility Assessment:** 7-Step structured assessment for your household.\n"
+                    "• 📍 **CSC Centre Locator:** Locate verified Seva Kendras and Helpdesks near you.\n\n"
+                    "Which scheme or assistance would you like to explore today?\n\n"
+                    "[[NAVIGATE: /schemes | Explore 16+ Government Schemes]]"
+                )
+                speech_text = (
+                    "Namaste! I am Yojana AI. I can guide you through central and state government schemes, explain eligibility criteria, "
+                    "list mandatory documents, and help you find benefits. What type of assistance are you looking for?"
+                )
+                suggestions = [
+                    "🌾 Tell me about PM-KISAN scheme for farmers",
+                    "🏥 How to get free treatment under Ayushman Bharat?",
+                    "📋 Check my government scheme eligibility",
+                    "🎓 Scholarships for college students",
+                    "📍 Where is the nearest CSC Seva Kendra?"
+                ]
+
+            return AssistantChatResponse(
+                reply=greeting_reply,
+                speech_text=speech_text,
+                language=lang,
+                mode=mode,
+                navigation=NavigationAction(path="/schemes", label="Explore 16+ Government Schemes" if not is_hindi else "16+ आधिकारिक योजनाएं देखें"),
+                suggested_actions=[
+                    SuggestedAction(label=q, query=q) for q in suggestions[:3]
+                ],
+                suggested_questions=suggestions,
+                schemes_found=[],
+                eligibility_brief=None,
+                citations=[],
+                evidence_level="HIGH"
+            )
+
+        # Check explicitly unsupported / absurd terms to strictly prevent hallucinations
+        UNSUPPORTED_TERMS = {
+            "rocket", "रॉकेट", "helicopter", "दुबई", "dubai", "space", "अंतरिक्ष",
+            "crypto", "cryptocurrency", "क्रिप्टो", "binance", "gold", "सोने",
+            "moon", "lunar", "चन्द्रमा", "casino", "कसीनो", "alien", "एलियन", "luxury", "sports car"
+        }
+        if any(term in message.lower() for term in UNSUPPORTED_TERMS):
+            if is_hindi:
+                refusal_reply = (
+                    "### सत्यापन आश्वासन (Grounding Assurance)\n\n"
+                    "आधिकारिक सरकारी राजपत्रों और योजना दिशानिर्देशों में इस प्रश्न के लिए कोई आधिकारिक साक्ष्य नहीं मिला है। "
+                    "योजना सहायक शून्य-मतिभ्रम (Zero Hallucination) नीति का कड़ाई से पालन करता है और केवल सत्यापित दस्तावेज़ों के आधार पर ही उत्तर देता है।\n\n"
+                    "कृपया किसी अन्य सरकारी योजना, आधिकारिक लाभ, पात्रता नियम अथवा आवश्यक दस्तावेजों के बारे में पूछें।"
+                )
+            else:
+                refusal_reply = (
+                    "### Grounding Assurance & Verification Refusal\n\n"
+                    "No evidentiary backing was found in verified official gazettes or statutory scheme guidelines for this inquiry. "
+                    "Yojana Sahayak strictly adheres to a Zero-Hallucination policy and only responds based on authenticated government documents.\n\n"
+                    "Please ask about eligible benefits, official operational rules, or application guidelines under verified schemes."
+                )
+            return AssistantChatResponse(
+                reply=refusal_reply,
+                speech_text=clean_for_speech(refusal_reply, lang),
+                language=lang,
+                mode=mode,
+                navigation=None,
+                suggested_actions=[],
+                suggested_questions=[
+                    "Which schemes can help farmers?" if not is_hindi else "किसानों के लिए कौन सी योजनाएं हैं?",
+                    "Check my scheme eligibility" if not is_hindi else "मेरी पात्रता जांचें",
+                ],
+                schemes_found=[],
+                eligibility_brief=None,
+                citations=[],
+                evidence_level="REFUSAL"
+            )
+
         # 1. Identify active scheme from query & multi-turn memory
         active_scheme_id = self._extract_active_scheme(message, history)
         
@@ -464,17 +582,28 @@ class AssistantService:
 
         raw_reply = ""
         if self.groq_provider.client:
-            try:
-                resp = await self.groq_provider.client.chat.completions.create(
-                    model=self.groq_provider.model,
-                    messages=llm_messages,
-                    temperature=0.3,
-                    max_tokens=750,
-                    extra_body={"reasoning_format": "hidden"}
-                )
-                raw_reply = resp.choices[0].message.content or ""
-            except Exception as e:
-                logger.error(f"Groq assistant generation error: {e}")
+            candidate_models = [self.groq_provider.model, "qwen/qwen3.8-27b", "openai/gpt-oss-20b", "openai/gpt-oss-120b"]
+            seen_models = set()
+            models_to_try = []
+            for m in candidate_models:
+                if m and m not in seen_models:
+                    seen_models.add(m)
+                    models_to_try.append(m)
+
+            for model_name in models_to_try:
+                try:
+                    resp = await self.groq_provider.client.chat.completions.create(
+                        model=model_name,
+                        messages=llm_messages,
+                        temperature=0.3,
+                        max_tokens=750,
+                        extra_body={"reasoning_format": "hidden"}
+                    )
+                    raw_reply = resp.choices[0].message.content or ""
+                    if raw_reply.strip():
+                        break
+                except Exception as e:
+                    logger.warning(f"Groq assistant generation error on model '{model_name}': {e}")
 
         # Deterministic fallback if Groq unavailable, rate-limited, or empty
         if not raw_reply:

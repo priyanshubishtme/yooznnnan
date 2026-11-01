@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # LLM Settings (Groq API)
     groq_api_key: str = ""
-    groq_model: str = "openai/gpt-oss-120b"
+    groq_model: str = "qwen/qwen3.8-27b"
     groq_base_url: str = "https://api.groq.com/openai/v1"
     llm_temperature: float = 0.1
     llm_max_output_tokens: int = 700
