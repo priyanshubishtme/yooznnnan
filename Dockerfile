@@ -26,11 +26,11 @@ RUN pip install --no-cache-dir -r ./backend/requirements.txt
 
 COPY backend/ ./backend/
 COPY registry/ ./registry/
-COPY data/ ./data/
+RUN mkdir -p ./data ./data/indexes ./data/pdfs
 
 # Copy compiled frontend from Stage 1 into apps/web/dist
 COPY --from=frontend-builder /app/apps/web/dist ./apps/web/dist
 
-EXPOSE 8005
+EXPOSE 8005 10000
 
-CMD ["python", "-m", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8005"]
+CMD ["sh", "-c", "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8005}"]
