@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { DiscoveryJob } from '../../types';
+import { apiUrl } from '../../config/api';
 
 interface SchedulerTelemetry {
   running: boolean;
@@ -57,8 +58,8 @@ export const AdminDiscoveryPage: React.FC = () => {
     try {
       // Fetch telemetry and jobs independently so a partial glitch does not break both
       const [jobsRes, schedRes] = await Promise.allSettled([
-        fetch('http://127.0.0.1:8005/api/v1/admin/discovery/jobs'),
-        fetch('http://127.0.0.1:8005/api/v1/admin/scheduler/status')
+        fetch(apiUrl('/api/v1/admin/discovery/jobs')),
+        fetch(apiUrl('/api/v1/admin/scheduler/status'))
       ]);
 
       if (jobsRes.status === 'fulfilled' && jobsRes.value.ok) {
@@ -109,7 +110,7 @@ export const AdminDiscoveryPage: React.FC = () => {
     setActionLoading(action);
     setStatusMsg(null);
     try {
-      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/scheduler/${action}`, {
+      const res = await fetch(apiUrl(`/api/v1/admin/scheduler/${action}`), {
         method: 'POST'
       });
       const data = await res.json();
@@ -136,7 +137,7 @@ export const AdminDiscoveryPage: React.FC = () => {
     setTriggerLoading(true);
     setStatusMsg(null);
     try {
-      const res = await fetch('http://127.0.0.1:8005/api/v1/admin/sources/SRC-MIN-AGRI/discover', {
+      const res = await fetch(apiUrl('/api/v1/admin/sources/SRC-MIN-AGRI/discover'), {
         method: 'POST'
       });
       const data = await res.json();

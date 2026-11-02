@@ -24,6 +24,7 @@ import {
   Mail
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiUrl } from '../../config/api';
 import { SchemeItem } from '../../types';
 import { LoadingSkeleton, ErrorState } from '../../components/common/StateViews';
 import { PdfEvidenceViewerModal } from '../../components/PdfEvidenceViewerModal';
@@ -60,7 +61,7 @@ export const CitizenSchemeDetailPage: React.FC = () => {
     setReminderSubmitting(true);
     setReminderStatus(null);
     try {
-      const res = await fetch('http://127.0.0.1:8005/api/v1/reminders/subscribe', {
+      const res = await fetch(apiUrl('/api/v1/reminders/subscribe'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +110,7 @@ export const CitizenSchemeDetailPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8005/api/v1/schemes/${schemeId}`)
+    fetch(apiUrl(`/api/v1/schemes/${schemeId}`))
       .then(res => res.json())
       .then(data => {
         if (data.ok && data.data) setScheme(data.data);
@@ -469,4 +470,3 @@ export const CitizenSchemeDetailPage: React.FC = () => {
     </div>
   );
 };
-

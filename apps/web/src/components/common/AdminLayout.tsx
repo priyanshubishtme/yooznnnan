@@ -17,6 +17,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiUrl } from '../../config/api';
 
 export const AdminLayout: React.FC = () => {
   const { t } = useLanguage();
@@ -25,7 +26,7 @@ export const AdminLayout: React.FC = () => {
 
   useEffect(() => {
     // Health probe to backend API
-    fetch('http://127.0.0.1:8005/health')
+    fetch(apiUrl('/health'))
       .then(res => res.json())
       .then(data => setApiHealthy(data?.ok && data?.data?.status === 'ok'))
       .catch(() => setApiHealthy(false));
@@ -192,4 +193,3 @@ export const AdminLayout: React.FC = () => {
     </div>
   );
 };
-

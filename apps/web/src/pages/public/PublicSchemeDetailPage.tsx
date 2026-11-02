@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { SchemeItem, VerifiedDocumentItem, ActiveRuleItem } from '../../types';
+import { apiUrl } from '../../config/api';
 
 export const PublicSchemeDetailPage: React.FC = () => {
   const { schemeId } = useParams<{ schemeId: string }>();
@@ -58,7 +59,7 @@ export const PublicSchemeDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    fetch(`http://127.0.0.1:8005/api/v1/schemes/${encodeURIComponent(schemeId)}`)
+    fetch(apiUrl(`/api/v1/schemes/${encodeURIComponent(schemeId)}`))
       .then(res => {
         if (!res.ok) throw new Error(`Scheme could not be retrieved (HTTP ${res.status})`);
         return res.json();
@@ -209,8 +210,8 @@ export const PublicSchemeDetailPage: React.FC = () => {
 
   // Backend streaming PDF URL with resilient fallback
   const activeVersionId = activeDocument?.version_id || scheme?.scheme_id || 'ver-pm_kisan-ae82cac8';
-  const pdfStreamUrl = `http://127.0.0.1:8005/api/v1/evidence/${activeVersionId}/pdf#page=${currentPage}&zoom=${zoomLevel}`;
-  const directDownloadUrl = `http://127.0.0.1:8005/api/v1/evidence/${activeVersionId}/pdf`;
+  const pdfStreamUrl = `${apiUrl(`/api/v1/evidence/${activeVersionId}/pdf`)}#page=${currentPage}&zoom=${zoomLevel}`;
+  const directDownloadUrl = apiUrl(`/api/v1/evidence/${activeVersionId}/pdf`);
 
   return (
     <div className="yl" style={{ minHeight: '100vh', background: 'var(--cream, #fff6e5)' }}>
@@ -1192,7 +1193,7 @@ export const PublicSchemeDetailPage: React.FC = () => {
                 }}
               >
                 <img
-                  src={`http://127.0.0.1:8005/api/v1/evidence/${activeVersionId}/${currentPage}/image`}
+                  src={apiUrl(`/api/v1/evidence/${activeVersionId}/${currentPage}/image`)}
                   alt={`Official Document Page ${currentPage}`}
                   style={{
                     maxWidth: '850px',

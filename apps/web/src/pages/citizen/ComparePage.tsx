@@ -27,6 +27,7 @@ import {
   Plus
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiUrl } from '../../config/api';
 import { SchemeItem } from '../../types';
 
 export const ComparePage: React.FC = () => {
@@ -58,7 +59,7 @@ export const ComparePage: React.FC = () => {
       setIsLoadingSchemes(true);
       setFetchError(null);
       try {
-        const resp = await fetch('http://127.0.0.1:8005/api/v1/schemes?limit=100');
+        const resp = await fetch(apiUrl('/api/v1/schemes?limit=100'));
         if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
         const json = await resp.json();
 
@@ -82,7 +83,7 @@ export const ComparePage: React.FC = () => {
         }
       } catch (err: any) {
         console.error('Failed to load schemes for comparison:', err);
-        setFetchError('Could not load schemes from backend at http://127.0.0.1:8005.');
+        setFetchError('Could not load schemes from the backend.');
       } finally {
         setIsLoadingSchemes(false);
       }
@@ -96,7 +97,7 @@ export const ComparePage: React.FC = () => {
     if (ids.length < 2) return;
     setIsComparing(true);
     try {
-      const resp = await fetch(`http://127.0.0.1:8005/api/v1/schemes/compare/batch?ids=${ids.join(',')}`);
+      const resp = await fetch(apiUrl(`/api/v1/schemes/compare/batch?ids=${ids.join(',')}`));
       if (resp.ok) {
         const json = await resp.json();
         if (json.data && Array.isArray(json.data.compared_schemes)) {

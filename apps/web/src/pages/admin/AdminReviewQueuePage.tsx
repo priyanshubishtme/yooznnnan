@@ -11,6 +11,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import { ResourceCandidate, SchemeItem } from '../../types';
 import { EmptyState, LoadingSkeleton } from '../../components/common/StateViews';
+import { apiUrl } from '../../config/api';
 
 interface CandidateDetail {
   candidate: ResourceCandidate;
@@ -63,12 +64,12 @@ export const AdminReviewQueuePage: React.FC = () => {
   const fetchCandidates = () => {
     setLoading(true);
     const url = activeTab === 'all' 
-      ? 'http://127.0.0.1:8005/api/v1/admin/review-queue'
-      : `http://127.0.0.1:8005/api/v1/admin/review-queue?status=${activeTab}`;
+      ? apiUrl('/api/v1/admin/review-queue')
+      : apiUrl(`/api/v1/admin/review-queue?status=${activeTab}`);
 
     Promise.all([
       fetch(url).then(r => r.json()),
-      fetch('http://127.0.0.1:8005/api/v1/schemes?limit=50').then(r => r.json())
+      fetch(apiUrl('/api/v1/schemes?limit=50')).then(r => r.json())
     ])
       .then(([candData, schemesData]) => {
         if (candData.ok && Array.isArray(candData.data)) {
@@ -92,7 +93,7 @@ export const AdminReviewQueuePage: React.FC = () => {
   const handleOpenDetail = async (candidateId: string) => {
     setDetailLoading(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/review-queue/${candidateId}`);
+      const res = await fetch(apiUrl(`/api/v1/admin/review-queue/${candidateId}`));
       const data = await res.json();
       if (res.ok && data.ok) {
         setDetailCandidate(data.data);
@@ -121,7 +122,7 @@ export const AdminReviewQueuePage: React.FC = () => {
     setActionLoading(`approve-${approveTarget.id}`);
     setStatusMessage(null);
     try {
-      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/review-queue/${approveTarget.id}/approve`, {
+      const res = await fetch(apiUrl(`/api/v1/admin/review-queue/${approveTarget.id}/approve`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -164,7 +165,7 @@ export const AdminReviewQueuePage: React.FC = () => {
     setActionLoading(`reject-${rejectTarget.id}`);
     setStatusMessage(null);
     try {
-      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/review-queue/${rejectTarget.id}/reject`, {
+      const res = await fetch(apiUrl(`/api/v1/admin/review-queue/${rejectTarget.id}/reject`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -196,7 +197,7 @@ export const AdminReviewQueuePage: React.FC = () => {
   const handleSchemeChange = async (candidateId: string, schemeId: string) => {
     setActionLoading(`assign-${candidateId}`);
     try {
-      const res = await fetch(`http://127.0.0.1:8005/api/v1/admin/review-queue/${candidateId}/assign-scheme`, {
+      const res = await fetch(apiUrl(`/api/v1/admin/review-queue/${candidateId}/assign-scheme`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scheme_id: schemeId })
@@ -922,4 +923,3 @@ export const AdminReviewQueuePage: React.FC = () => {
 function roundPercent(ratio: number): string {
   return (ratio * 100).toFixed(1);
 }
-

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { SchemeItem } from '../../types';
+import { apiUrl } from '../../config/api';
 
 export const PublicSchemesPage: React.FC = () => {
   const { language, t } = useLanguage();
@@ -44,7 +45,7 @@ export const PublicSchemesPage: React.FC = () => {
   const fetchSchemes = () => {
     setLoading(true);
     setError(null);
-    let url = 'http://127.0.0.1:8005/api/v1/schemes?limit=100';
+    let url = apiUrl('/api/v1/schemes?limit=100');
     if (selectedCategory !== 'all') url += `&category=${encodeURIComponent(selectedCategory)}`;
     if (selectedLevel !== 'all') url += `&level=${encodeURIComponent(selectedLevel)}`;
     if (selectedState !== 'all') url += `&state=${encodeURIComponent(selectedState)}`;
@@ -65,7 +66,7 @@ export const PublicSchemesPage: React.FC = () => {
       })
       .catch(err => {
         console.error('Failed to fetch schemes:', err);
-        setError('Could not connect to government scheme database at http://127.0.0.1:8005. Please verify backend service.');
+        setError('Could not connect to the government scheme database. Please verify the backend service.');
         setLoading(false);
       });
   };

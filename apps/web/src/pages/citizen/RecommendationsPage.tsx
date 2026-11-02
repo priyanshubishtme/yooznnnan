@@ -30,6 +30,7 @@ import {
   Info
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiUrl } from '../../config/api';
 import { RankedSchemeRecommendation } from '../../types';
 
 export const RecommendationsPage: React.FC = () => {
@@ -93,7 +94,7 @@ export const RecommendationsPage: React.FC = () => {
       }
 
       try {
-        const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/evaluate', {
+        const resp = await fetch(apiUrl('/api/v1/eligibility/evaluate'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ profile: profilePayload })
@@ -610,4 +611,3 @@ export const RecommendationsPage: React.FC = () => {
     </div>
   );
 };
-

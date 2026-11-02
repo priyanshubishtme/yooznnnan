@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Filter, Bookmark, ArrowRight, ShieldCheck, Sparkles, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiUrl } from '../../config/api';
 import { SchemeItem } from '../../types';
 import { LoadingSkeleton, EmptyState } from '../../components/common/StateViews';
 
@@ -23,7 +24,7 @@ export const CitizenDiscoverPage: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8005/api/v1/schemes?limit=50')
+    fetch(apiUrl('/api/v1/schemes?limit=50'))
       .then(res => res.json())
       .then(data => {
         if (data.ok && Array.isArray(data.data)) {
@@ -250,4 +251,3 @@ export const CitizenDiscoverPage: React.FC = () => {
     </div>
   );
 };
-

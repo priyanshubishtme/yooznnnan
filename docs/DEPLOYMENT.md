@@ -105,6 +105,11 @@ The repository includes [`apps/web/vercel.json`](../apps/web/vercel.json) and ro
 ```
 All API queries from your Vercel URL seamlessly route to your Render backend with zero CORS issues and zero downtime.
 
+The frontend reads `VITE_API_BASE_URL` for API calls. Leave it unset when using
+the repository's Vercel rewrites, or set it to `https://yooznnnan.onrender.com`
+when the frontend is hosted separately without an `/api` proxy. Local
+development keeps using Vite's `/api` proxy to `127.0.0.1:8005`.
+
 ---
 
 ## 4. Option C: Self-Hosted Docker Compose (VPS / Local)

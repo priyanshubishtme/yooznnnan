@@ -49,6 +49,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiUrl } from '../../config/api';
 import { useCitizenStore } from '../../utils/citizenStore';
 import { useAudioWaveform } from '../../hooks/useAudioWaveform';
 import { PdfEvidenceViewerModal } from '../../components/PdfEvidenceViewerModal';
@@ -463,7 +464,7 @@ export const ChatPage: React.FC = () => {
         content: m.content
       }));
 
-      const response = await fetch('http://127.0.0.1:8005/api/v1/assistant/chat', {
+      const response = await fetch(apiUrl('/api/v1/assistant/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -556,7 +557,7 @@ export const ChatPage: React.FC = () => {
   // Record feedback (thumbs up / down)
   const handleFeedback = async (msgId: string, query: string, helpful: boolean) => {
     try {
-      await fetch('http://127.0.0.1:8005/api/v1/assistant/feedback', {
+      await fetch(apiUrl('/api/v1/assistant/feedback'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -580,7 +581,7 @@ export const ChatPage: React.FC = () => {
   // Save scheme bookmark directly from embedded card
   const handleSaveScheme = async (schemeId: string) => {
     try {
-      const resp = await fetch('http://127.0.0.1:8005/api/v1/citizen/schemes/save', {
+      const resp = await fetch(apiUrl('/api/v1/citizen/schemes/save'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
