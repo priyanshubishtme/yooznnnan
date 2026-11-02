@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PDF Evidence Coordinate Viewer Modal
  *
  * Enforces Blueprint Section 7.5 & Phase 8 Gate:
@@ -77,7 +77,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
     const fetchPageEvidence = async () => {
       setIsLoading(true);
       try {
-        const resp = await fetch(`http://127.0.0.1:8005/api/v1/evidence/${versionId}/${currentPage}`);
+        const resp = await fetch(`/api/v1/evidence/${versionId}/${currentPage}`);
         if (resp.ok) {
           const json = await resp.json();
           setEvidenceData(json.data);
@@ -219,7 +219,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
 
             {/* Direct Download Official PDF */}
             <a
-              href={`http://127.0.0.1:8005/api/v1/evidence/${versionId}/pdf`}
+              href={`/api/v1/evidence/${versionId}/pdf`}
               download
               target="_blank"
               rel="noopener noreferrer"
@@ -324,7 +324,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
           >
             {viewMode === 'pdf' ? (
               <iframe
-                src={`http://127.0.0.1:8005/api/v1/evidence/${versionId}/pdf#page=${currentPage}&zoom=${Math.round(zoomLevel * 100)}`}
+                src={`/api/v1/evidence/${versionId}/pdf#page=${currentPage}&zoom=${Math.round(zoomLevel * 100)}`}
                 title="Official Government PDF Viewer"
                 style={{
                   width: '100%',
@@ -354,7 +354,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
               >
                 {/* 150 DPI Rendered Page with High-Precision Highlights */}
                 <img
-                  src={`http://127.0.0.1:8005${evidenceData.image_url}`}
+                  src={evidenceData.image_url}
                   alt={`Official Document Page ${currentPage}`}
                   style={{
                     display: 'block',
@@ -376,7 +376,7 @@ export const PdfEvidenceViewerModal: React.FC<PdfEvidenceViewerModalProps> = ({
                   <button onClick={() => setViewMode('pdf')} className="btn btn-primary btn-sm">
                     Switch to Raw PDF View
                   </button>
-                  <a href={`http://127.0.0.1:8005/api/v1/evidence/${versionId}/pdf`} download className="btn btn-secondary btn-sm">
+                  <a href={`/api/v1/evidence/${versionId}/pdf`} download className="btn btn-secondary btn-sm">
                     <Download size={13} />
                     Download PDF
                   </a>

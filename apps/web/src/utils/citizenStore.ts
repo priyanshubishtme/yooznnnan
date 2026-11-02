@@ -431,7 +431,7 @@ class CitizenStoreManager {
     localStorage.setItem('yojana_profile', JSON.stringify(updated)); // backward-compatibility
 
     // Persist to server-side CitizenProfile database
-    fetch('http://127.0.0.1:8005/api/v1/citizen/profile', {
+    fetch('/api/v1/citizen/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -507,7 +507,7 @@ class CitizenStoreManager {
   // Recommendations Auto-Refresh
   public async refreshEligibilityAndRecommendations(profile: CitizenProfile) {
     try {
-      const resp = await fetch('http://127.0.0.1:8005/api/v1/eligibility/evaluate', {
+      const resp = await fetch('/api/v1/eligibility/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -630,7 +630,7 @@ class CitizenStoreManager {
 
     // Attempt backend sync & email delivery
     try {
-      const resp = await fetch('http://127.0.0.1:8005/api/v1/reminders/citizen/create', {
+      const resp = await fetch('/api/v1/reminders/citizen/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

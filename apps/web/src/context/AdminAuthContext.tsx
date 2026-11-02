@@ -49,7 +49,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const parsedUser = JSON.parse(storedUser);
       // Verify token freshness with backend
-      fetch('http://127.0.0.1:8005/api/v1/admin/auth/verify', {
+      fetch('/api/v1/admin/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: storedToken })
@@ -77,7 +77,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loginWithMasterKey = async (masterKey: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await fetch('http://127.0.0.1:8005/api/v1/admin/auth/login', {
+      const res = await fetch('/api/v1/admin/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ master_key: masterKey })
@@ -113,7 +113,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loginWithCredentials = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await fetch('http://127.0.0.1:8005/api/v1/admin/auth/login', {
+      const res = await fetch('/api/v1/admin/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
