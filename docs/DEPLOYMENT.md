@@ -110,6 +110,9 @@ the repository's Vercel rewrites, or set it to `https://yooznnnan.onrender.com`
 when the frontend is hosted separately without an `/api` proxy. Local
 development keeps using Vite's `/api` proxy to `127.0.0.1:8005`.
 
+Netlify deployments use the same `/api/*` and `/health` proxy behavior through
+[`apps/web/netlify.toml`](../apps/web/netlify.toml).
+
 ---
 
 ## 4. Option C: Self-Hosted Docker Compose (VPS / Local)

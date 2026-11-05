@@ -17,6 +17,7 @@ from backend.app.core.logging import logger
 from backend.app.core.middleware import RequestContextMiddleware
 from backend.app.core.rate_limit import RateLimitMiddleware
 from backend.app.db.seed import seed_database
+from backend.app.db.seed_documents import seed as seed_official_documents
 from backend.app.db.session import AsyncSessionLocal
 from backend.app.scheduler.manager import scheduler_manager
 
@@ -30,6 +31,12 @@ async def lifespan(app: FastAPI):
             await seed_database(session)
     except Exception as e:
         logger.warning(f"Database seed check warning: {e}")
+
+    if settings.app_env == "production":
+        try:
+            await seed_official_documents()
+        except Exception as e:
+            logger.warning(f"Official evidence seed warning: {e}")
 
     # Start single-instance scheduler if enabled
     if settings.scheduler_process_mode:

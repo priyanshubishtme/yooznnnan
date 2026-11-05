@@ -170,6 +170,9 @@ async def seed():
 
             await db.commit()
 
+            if ver_rec.ingested_at and storage_service.get_bytes(ver_rec.binary_sha256):
+                continue
+
             # Ingest using single shared pipeline!
             ingest_result = await pdf_ingestion_service.ingest_document_version(db, ver_id, actor="seed_runner")
             print(f"Ingested {d['title']}: {ingest_result['page_count']} pages, {ingest_result['chunk_count']} chunks, {ingest_result['box_count']} boxes (Diagnostic: {ingest_result['diagnostic_image']})")
